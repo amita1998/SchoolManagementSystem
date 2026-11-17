@@ -7,6 +7,7 @@ import { query } from '../config/db.js';
  */
 export async function audit(entry) {
   const {
+    client = null,
     actorUserId = null,
     actorRole = null,
     action,
@@ -19,8 +20,12 @@ export async function audit(entry) {
     userAgent = null,
   } = entry;
 
+  // Inside a business transaction the audit row must join that transaction,
+  // otherwise a rollback leaves an audit entry for something that never happened.
+  const runner = client ? client.query.bind(client) : query;
+
   try {
-    await query(
+    await runner(
       `INSERT INTO audit_logs (actor_user_id, actor_role, action, entity_type, entity_id,
          old_values, new_values, reason, ip, user_agent)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,

@@ -162,3 +162,31 @@ restarts at 1 rather than staying at 5, so an old lock cannot re-trigger on the 
 The response is `423 ACCOUNT_LOCKED` with the remaining minutes. Independently,
 `express-rate-limit` caps sign-in attempts per IP (20 / 15 min, successful attempts excluded) so
 one host cannot spray many accounts. Only failures and lockouts are audited, never passwords.
+
+## ADR-011 — admission is one request, and the audit row joins the transaction
+
+**Admission** accepts `multipart/form-data` with a JSON `payload` plus up to five files. Everything
+(student, login, enrollment, guardians, documents, first status-history row) is written in one
+database transaction, so a half-admitted student cannot exist. Files are written inside that
+transaction and deleted again if it rolls back. A client-supplied `admissionId` is ignored; the
+column default is the only source of the number.
+
+One temporary password is generated per admission and reused for the student login and any new
+guardian account, so the office hands over a single slip. It is returned once, never stored in
+plain text.
+
+**Audit rows join the transaction** (`audit({ client, … })`). Writing them through the pool inside a
+transaction leaves an audit entry behind when the business change rolls back — an audit trail that
+records things that never happened is worse than none.
+
+**Stale-read rule (hit during Step 4):** reading a row back through the pool *inside* its own
+transaction returns the pre-update version, because that is a different connection. Every service
+that changes data now commits first and reads afterwards; the status-change test asserts the
+returned object carries the new status, which is how this was caught.
+
+## ADR-012 — soft delete never frees a business number
+
+`students.admission_id`, `teachers.employee_id` and `fee_receipts.receipt_no` stay unique even after
+a soft delete, because the numbers must never be reused. Deleting sets `deleted_at`, disables the
+login and keeps history; only classes, sections and subjects can be re-created under the same name
+(their unique indexes are partial on `deleted_at IS NULL`).

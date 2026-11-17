@@ -9,6 +9,14 @@ import ChangePasswordPage from '../pages/auth/ChangePasswordPage.jsx';
 import UnauthorizedPage from '../pages/UnauthorizedPage.jsx';
 import NotFoundPage from '../pages/NotFoundPage.jsx';
 import AdminDashboard from '../pages/admin/AdminDashboard.jsx';
+import StudentsPage from '../pages/admin/StudentsPage.jsx';
+import StudentAdmissionPage from '../pages/admin/StudentAdmissionPage.jsx';
+import StudentProfilePage from '../pages/admin/StudentProfilePage.jsx';
+import TeachersPage from '../pages/admin/TeachersPage.jsx';
+import TeacherFormPage from '../pages/admin/TeacherFormPage.jsx';
+import TeacherProfilePage from '../pages/admin/TeacherProfilePage.jsx';
+import AcademicsPage from '../pages/admin/AcademicsPage.jsx';
+import '../styles/admin.css';
 import TeacherDashboard from '../pages/teacher/TeacherDashboard.jsx';
 import StudentDashboard from '../pages/student/StudentDashboard.jsx';
 import ParentDashboard from '../pages/parent/ParentDashboard.jsx';
@@ -52,6 +60,13 @@ export default function AppRoutes() {
         }
       >
         <Route index element={<AdminDashboard />} />
+        <Route path="students" element={<StudentsPage />} />
+        <Route path="students/new" element={<StudentAdmissionPage />} />
+        <Route path="students/:id" element={<StudentProfilePage />} />
+        <Route path="teachers" element={<TeachersPage />} />
+        <Route path="teachers/new" element={<TeacherFormPage />} />
+        <Route path="teachers/:id" element={<TeacherProfilePage />} />
+        <Route path="classes" element={<AcademicsPage />} />
         <Route path="*" element={<ComingSoon />} />
       </Route>
 

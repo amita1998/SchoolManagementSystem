@@ -3,10 +3,10 @@
 Web application for a single school (Nursery to Class 12, academic year April–March,
 English only). React + Express + PostgreSQL.
 
-> Build status: **Steps 1–3 of 9 complete** — project setup, database schema, migrations, seed,
-> authentication with server-side role authorization, the common login page, and the three-zone
-> dashboard shell with four role dashboards reading live data.
-> Student/teacher management is Step 4.
+> Build status: **Steps 1–4 of 9 complete** — setup/schema/seed, authentication, dashboard shell
+> with four role dashboards, and student / teacher / class / subject management (five-step
+> admission with documents, generated IDs, account creation, lifecycle history).
+> Attendance is Step 5.
 
 ---
 
@@ -172,13 +172,39 @@ horizontal strip and everything stacks. Colours, radii and shadows are the token
 Navigation is filtered by the same permission strings the server enforces, and every module that
 is not built yet says which step it arrives in — there are no dead links and no fake numbers.
 
-## 8. Tests
+## 8. Management API (Step 4)
+
+| Area | Endpoints |
+|---|---|
+| Students | `GET/POST /api/students`, `GET/PUT/DELETE /api/students/:id`, `POST /:id/status`, `POST /:id/reset-password`, `POST /:id/documents`, `GET/DELETE /api/students/documents/:docId` |
+| Teachers | `GET/POST /api/teachers`, `GET/PUT/DELETE /api/teachers/:id`, `POST /:id/status`, `PUT /:id/assignments`, `POST/DELETE /:id/class-teacher`, `POST /:id/reset-password` |
+| Academics | `GET /api/academics/options`, `GET/POST/PUT/DELETE /api/academics/classes`, `POST /api/academics/classes/:id/sections`, `PUT/DELETE /api/academics/sections/:id`, `GET/POST/PUT/DELETE /api/academics/subjects`, `PUT /api/academics/classes/:id/subjects`, `GET/POST /api/academics/years`, `POST /api/academics/years/:id/current` |
+
+**Admission** is a single `multipart/form-data` request: a `payload` JSON field plus up to five
+`documents` (PDF/JPG/PNG, 5 MB each) and a parallel `documentTypes` array. One transaction creates
+the student, its login (`username = Admission ID`), the enrollment, the guardian records, the
+document rows and the first status-history row. The response carries the temporary password, which
+is never retrievable again.
+
+Behaviour worth knowing:
+
+* Admission / employee / receipt numbers come from database sequences; a client-supplied
+  `admissionId` is ignored.
+* A guardian whose email or mobile already exists is attached to the same family account, so
+  siblings share one parent login.
+* Status changes append to `student_status_history`, and a leaving status disables the login.
+* Deleting is a soft delete; the row and its history stay for reports.
+* `23505` unique violations are mapped to `409` codes (`SECTION_EXISTS`, `TEACHER_ALREADY_CLASS_TEACHER`,
+  `CLASS_EXISTS`, …) instead of leaking a database error.
+* A teacher who is still a class teacher cannot be deactivated or deleted.
+
+## 9. Tests
 
 ```bash
 # one-time: a separate database so tests never touch dev data
 createdb -h 127.0.0.1 -p 5434 -U vvs vvs_test
 cd backend && DATABASE_URL=postgresql://vvs@127.0.0.1:5434/vvs_test npm run migrate
-npm test          # 24 tests (auth + dashboard), node:test, ~8 s
+npm test          # 40 tests (auth + dashboards + management), node:test, ~15 s
 ```
 
 `tests/support/testEnv.js` pins `NODE_ENV=test` and the `vvs_test` URL **before** anything imports
@@ -191,14 +217,17 @@ Covered now: login per role, wrong password, unknown account, role mismatch, 5-a
 missing/invalid token, the forced-password-change gate, refresh rotation + replay detection,
 logout revocation, password change, audit rows, the append-only audit trigger, and dashboard
 scoping — including a parent asking for another parent's child (`403`) and each role calling
-another role's dashboard (`403`).
+another role's dashboard (`403`). Step 4 adds: admission (student + login + guardian + document in
+one call), sequential IDs, file-type rejection, server-side search/filter/pagination, status
+persistence, a student reading another student's record (`403`), teacher creation, the
+one-section-per-teacher rule, the class-teacher deactivation guard, and subject-deletion guards.
 
-## 9. Roadmap
+## 10. Roadmap
 
 1. ✅ Setup, schema, migrations, seed
 2. ✅ Authentication, roles, common login page
 3. ✅ Layout shell + four dashboards
-4. Student, teacher, class, subject management
+4. ✅ Student, teacher, class, subject management
 5. Attendance + correction workflow
 6. Examinations, marks, report cards
 7. Fees and receipts
