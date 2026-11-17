@@ -1,0 +1,141 @@
+/* Design tokens for the Vision Valley UI. Step 3 builds the shell on these. */
+:root {
+  --vvs-primary: #5f6db0;
+  --vvs-primary-dark: #4b5798;
+  --vvs-primary-soft: #eceefb;
+  --vvs-accent: #ee8791;
+  --vvs-text: #2d3156;
+  --vvs-muted: #7b7f9e;
+  --vvs-canvas: #f1f2f8;
+  --vvs-surface: #ffffff;
+  --vvs-border: #e7e8f2;
+  --vvs-success: #4caf8f;
+  --vvs-warning: #f0b429;
+  --vvs-danger: #e0576b;
+
+  --vvs-radius-sm: 12px;
+  --vvs-radius-md: 18px;
+  --vvs-radius-lg: 24px;
+  --vvs-radius-xl: 28px;
+
+  --vvs-shadow-sm: 0 2px 8px rgba(45, 49, 86, 0.05);
+  --vvs-shadow-md: 0 12px 32px rgba(45, 49, 86, 0.08);
+
+  --vvs-font: 'Mulish', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--vvs-font);
+  background: var(--vvs-canvas);
+  color: var(--vvs-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--vvs-text);
+  font-weight: 700;
+}
+
+a {
+  color: var(--vvs-primary);
+  text-decoration: none;
+}
+
+/* ---------- Step 1 setup screen ---------- */
+.setup-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  background:
+    radial-gradient(900px 500px at 10% -10%, #e6e9fb 0%, transparent 60%),
+    radial-gradient(700px 500px at 110% 10%, #fde9ec 0%, transparent 55%),
+    var(--vvs-canvas);
+}
+
+.setup-card {
+  width: min(560px, 100%);
+  background: var(--vvs-surface);
+  border-radius: var(--vvs-radius-xl);
+  box-shadow: var(--vvs-shadow-md);
+  padding: 40px;
+  text-align: center;
+}
+
+.setup-logo {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 18px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, #7c93e8, #a07ce0 55%, #ee8791);
+}
+
+.setup-card h1 {
+  font-size: 1.6rem;
+  margin: 0 0 6px;
+}
+
+.setup-sub {
+  color: var(--vvs-muted);
+  margin: 0 0 26px;
+}
+
+.setup-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px;
+  border-radius: var(--vvs-radius-md);
+  text-align: left;
+  font-size: 0.92rem;
+  border: 1px solid var(--vvs-border);
+  background: #fafbff;
+}
+
+.setup-status strong {
+  font-size: 1rem;
+}
+
+.setup-status span {
+  color: var(--vvs-muted);
+}
+
+.setup-status--ok {
+  border-color: #cfe9df;
+  background: #f2fbf7;
+}
+
+.setup-status--error {
+  border-color: #f6d3d8;
+  background: #fdf4f5;
+}
+
+.setup-next {
+  margin: 26px 0 0;
+  padding-left: 20px;
+  text-align: left;
+  color: var(--vvs-muted);
+  font-size: 0.9rem;
+  line-height: 1.9;
+}
