@@ -3,8 +3,9 @@
 Web application for a single school (Nursery to Class 12, academic year April–March,
 English only). React + Express + PostgreSQL.
 
-> Build status: **Step 1 of 9 complete** — project setup, database schema, migrations and seed.
-> Auth, layouts and dashboards are the next steps. See "Roadmap" at the bottom.
+> Build status: **Steps 1–2 of 9 complete** — project setup, database schema, migrations, seed,
+> authentication with server-side role authorization, and the common login page.
+> Layout shell and the four dashboards are Step 3.
 
 ---
 
@@ -75,16 +76,45 @@ npm run dev               # http://localhost:5174
 
 ## 5. Accounts
 
-No credentials are hard-coded. Accounts are created by the seed script:
+No credentials are hard-coded and there is no demo data in the development database.
 
 * **Admin** — `ADMIN_EMAIL` from `backend/.env`. If `ADMIN_INITIAL_PASSWORD` is blank the seed
-  generates one and prints it exactly once; that account must change its password at first login.
-* **Demo teacher / student / parent** — only when `SEED_DEMO=true` (refused in production).
-  Password is `DEMO_PASSWORD` from `.env`. Student usernames are their Admission IDs
-  (`VVS-000001` …), parents use their email, a parent account can hold several children.
+  generates a temporary password and prints it exactly once; that account must change it at first
+  login. Set `ADMIN_INITIAL_PASSWORD` to a password you chose yourself and the forced change is
+  skipped (it is then not a temporary password).
+* **Teacher / student / parent accounts** are created by the Admin from inside the app (Step 4).
+  Student usernames are Admission IDs (`VVS-000001` …), parents use their email or mobile, and one
+  parent account can hold several children.
 
-Demo families: `rakesh.sharma@example.com` (2 children), `sunita.patel@example.com` (2),
-`imran.khan@example.com` (1).
+Test-only accounts live in the separate `vvs_test` database — see "Tests" below.
+
+## 5a. Authentication API (Step 2)
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/auth/login` | `{ role, identifier, password, rememberMe }` → access token + refresh cookie |
+| POST | `/api/auth/refresh` | rotate the refresh cookie, return a fresh access token |
+| POST | `/api/auth/logout` | revoke the current session family |
+| GET | `/api/auth/me` | current user + permission list |
+| GET | `/api/auth/sessions` | active sessions for the signed-in user |
+| POST | `/api/auth/change-password` | `{ currentPassword, newPassword, confirmPassword }` |
+
+Every error uses one envelope:
+
+```json
+{ "success": false, "error": { "code": "INVALID_CREDENTIALS", "message": "Invalid credentials…" } }
+```
+
+Validation failures add `error.fields` (per-field messages). Behaviour worth knowing:
+
+* the server decides the role from the account and rejects a wrong role selection with
+  `403 ROLE_MISMATCH` — but only after the password verifies, so it does not reveal which
+  accounts exist;
+* 5 failed attempts → `423 ACCOUNT_LOCKED` for 15 minutes;
+* a temporary password returns `403 PASSWORD_CHANGE_REQUIRED` from every endpoint except
+  `/auth/me`, `/auth/change-password` and `/auth/logout`;
+* `Authorization` is checked on the server for every request; the client-side route guards are
+  convenience only.
 
 ## 6. Project layout
 
@@ -119,10 +149,28 @@ migration files. Enforced in the database, not only in code:
 * `audit_logs` is append-only (update/delete raise).
 * Soft deletes everywhere (`deleted_at`); nothing is hard-deleted by the app.
 
-## Roadmap
+## 7. Tests
+
+```bash
+# one-time: a separate database so tests never touch dev data
+createdb -h 127.0.0.1 -p 5434 -U vvs vvs_test
+cd backend && DATABASE_URL=postgresql://vvs@127.0.0.1:5434/vvs_test npm run migrate
+npm test          # 17 auth tests, node:test, ~6 s
+```
+
+`tests/support/testEnv.js` pins `NODE_ENV=test` and the `vvs_test` URL **before** anything imports
+the config, and `tests/support/db.js` truncates every business table between runs. Fixtures create
+one account per role (`*@vvs.test`, password `Test@1234`) plus separate throwaway accounts for the
+destructive lockout and password-change cases.
+
+Covered now: login per role, wrong password, unknown account, role mismatch, 5-attempt lockout,
+missing/invalid token, the forced-password-change gate, refresh rotation + replay detection,
+logout revocation, password change, audit rows, and the append-only audit trigger.
+
+## 8. Roadmap
 
 1. ✅ Setup, schema, migrations, seed
-2. Authentication, roles, common login page
+2. ✅ Authentication, roles, common login page
 3. Layout shell + four dashboards
 4. Student, teacher, class, subject management
 5. Attendance + correction workflow

@@ -12,6 +12,8 @@ The build prompt refers to "BRD v1.2", but the document supplied with it is
 `Business Requirements Document (BRD).docx` **version 1.1 (Revised Draft)**. Where the two
 disagree, the build prompt is treated as the newer instruction. Deltas found so far:
 
+**Status: confirmed by the project owner (17-11-2026).**
+
 | # | Topic | BRD v1.1 | Build prompt (used) |
 |---|---|---|---|
 | 1 | Students seeing fees | "Students cannot see fee information" (3.3, business rule 17) | "View only if Admin enables" — setting `fee_visible_to_students`, default **off** |
@@ -21,6 +23,22 @@ disagree, the build prompt is treated as the newer instruction. Deltas found so 
 
 The fee switch is stored (`school_settings.fee_visible_to_students = false`) and enforced in the
 student-facing fee endpoints from Step 7. Nothing in the schema assumes students can see fees.
+**Confirmed by the owner:** the admin controls the switch and it stays off by default.
+
+## Resolution R1b — visual reference
+
+The Learnthru screenshot (BRD Annex A) was not supplied. The owner delegated the visual design
+to the build, so the UI follows BRD §5.1 in writing plus the tokens in the build prompt:
+Mulish, `#5F6DB0` primary, `#EE8791` coral, `#2D3156` text, `#F1F2F8` canvas, radii 12–28 px,
+soft shadows, roomy spacing. If the screenshot appears later, the tokens are in
+`frontend/src/styles/global.css` — one file to retune, not a redesign.
+
+## Resolution R1c — no demo data in the development database
+
+The owner wants the dev database clean for real data entry. `SEED_DEMO=false` in
+`backend/.env`; the seed creates reference data (classes, sections, subjects, periods, grades,
+fee categories, academic years, settings) and the first admin only. Test accounts and fixtures
+live in a **separate** database, `vvs_test`, created by `backend/tests/support/fixtures.js`.
 
 ## Resolution R2 — parent accounts
 
@@ -92,3 +110,28 @@ The frontend has exactly one place to interpret failures, and no stack traces ev
 
 `scripts/migrate.js` refuses to run if an applied file's sha256 changed. Schema changes are new
 files. Each file runs in its own transaction under an advisory lock, so two deploys cannot race.
+
+## ADR-007 — session strategy (Step 2)
+
+* **Access token**: JWT, 15 minutes, held **in memory** on the client and sent in the
+  `Authorization: Bearer` header. Nothing in `localStorage`, so an XSS cannot lift a token from
+  storage, and because authorization never rides on a cookie, state-changing requests are not
+  CSRF-able — that is why there is no CSRF token in this release.
+* **Refresh token**: 48 random bytes, only its sha256 stored, delivered as an `httpOnly`
+  `SameSite=Lax` cookie scoped to `/api/auth`. Rotated on every refresh.
+* **Reuse detection**: presenting a consumed refresh token revokes the entire token family and
+  returns `SESSION_REVOKED`. A stolen cookie is therefore worth one request, not thirty days.
+* **Remember me** only changes refresh lifetime (7 → 30 days) and whether the cookie is
+  persistent. The access token lifetime never changes.
+* **Password change** revokes every other device's refresh tokens but keeps the current one.
+* The user is re-read from the database on every request, so deactivating an account or changing
+  a role takes effect immediately rather than when the JWT expires.
+
+## ADR-008 — lockout semantics
+
+Five consecutive failed passwords lock the account for 15 minutes (`users.failed_login_attempts`,
+`users.locked_until`). A successful login resets the counter. Once the window passes the counter
+restarts at 1 rather than staying at 5, so an old lock cannot re-trigger on the next typo.
+The response is `423 ACCOUNT_LOCKED` with the remaining minutes. Independently,
+`express-rate-limit` caps sign-in attempts per IP (20 / 15 min, successful attempts excluded) so
+one host cannot spray many accounts. Only failures and lockouts are audited, never passwords.

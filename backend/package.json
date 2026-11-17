@@ -14,7 +14,9 @@
     "migrate:status": "node scripts/migrate.js --status",
     "seed": "node scripts/seed.js",
     "db:reset": "node scripts/db-reset.js",
-    "db:setup": "npm run migrate && npm run seed"
+    "db:setup": "npm run migrate && npm run seed",
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "test:watch": "node --test --watch --test-concurrency=1 tests/*.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
