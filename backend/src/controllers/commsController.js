@@ -61,7 +61,10 @@ export const notifications = asyncHandler(async (req, res) => {
 });
 
 export const markNotification = asyncHandler(async (req, res) => {
-  res.json({ success: true, data: await comms.markNotification(req.user.id, Number(req.params.id), Boolean(req.body.read)) });
+  // The path says "read": treat a missing body as read=true, and only accept an explicit false
+  // to flip it back. `Boolean(undefined)` silently marked the row UNREAD.
+  const read = req.body?.read === undefined ? true : Boolean(req.body.read);
+  res.json({ success: true, data: await comms.markNotification(req.user.id, Number(req.params.id), read) });
 });
 
 // assignments

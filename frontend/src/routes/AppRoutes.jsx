@@ -35,6 +35,9 @@ import StudentNoticesPage from '../pages/student/StudentNoticesPage.jsx';
 import ParentNoticesPage from '../pages/parent/ParentNoticesPage.jsx';
 import AdminTimetablePage from '../pages/admin/AdminTimetablePage.jsx';
 import TeacherTimetablePage from '../pages/teacher/TeacherTimetablePage.jsx';
+import TeacherClassesPage from '../pages/teacher/TeacherClassesPage.jsx';
+import TeacherStudentsPage from '../pages/teacher/TeacherStudentsPage.jsx';
+import ParentChildrenPage from '../pages/parent/ParentChildrenPage.jsx';
 import StudentTimetablePage from '../pages/student/StudentTimetablePage.jsx';
 import ParentTimetablePage from '../pages/parent/ParentTimetablePage.jsx';
 import TeacherAssignmentsPage from '../pages/teacher/TeacherAssignmentsPage.jsx';
@@ -121,6 +124,8 @@ export default function AppRoutes() {
         }
       >
         <Route index element={<TeacherDashboard />} />
+        <Route path="classes" element={<TeacherClassesPage />} />
+        <Route path="students" element={<TeacherStudentsPage />} />
         <Route path="attendance" element={<TeacherAttendancePage />} />
         <Route path="marks" element={<TeacherMarksPage />} />
         <Route path="assignments" element={<TeacherAssignmentsPage />} />
@@ -158,6 +163,7 @@ export default function AppRoutes() {
         }
       >
         <Route index element={<ParentDashboard />} />
+        <Route path="children" element={<ParentChildrenPage />} />
         <Route path="attendance" element={<ParentAttendancePage />} />
         <Route path="results" element={<ParentResultsPage />} />
         <Route path="fees" element={<ParentFeesPage />} />

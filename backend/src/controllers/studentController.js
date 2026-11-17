@@ -57,15 +57,18 @@ async function assertCanView(req, studentId) {
 
 export const list = asyncHandler(async (req, res) => {
   const { page, limit, offset } = parsePagination(req);
-  const result = await students.listStudents({
-    search: req.query.search?.trim() || null,
-    classId: req.query.classId ? Number(req.query.classId) : null,
-    sectionId: req.query.sectionId ? Number(req.query.sectionId) : null,
-    status: req.query.status || null,
-    page,
-    limit,
-    offset,
-  });
+  const result = await students.listStudents(
+    {
+      search: req.query.search?.trim() || null,
+      classId: req.query.classId ? Number(req.query.classId) : null,
+      sectionId: req.query.sectionId ? Number(req.query.sectionId) : null,
+      status: req.query.status || null,
+      page,
+      limit,
+      offset,
+    },
+    req.user,
+  );
   res.json({ success: true, data: result });
 });
 

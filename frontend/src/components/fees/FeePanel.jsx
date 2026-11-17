@@ -53,7 +53,7 @@ export default function FeePanel({ studentId = null, childPicker = false, self =
             <select value={active} onChange={(event) => setActive(event.target.value)} aria-label="Choose child">
               {children.map((child) => (
                 <option key={child.id} value={child.id}>
-                  {child.first_name} {child.last_name}
+                  {child.name}
                 </option>
               ))}
             </select>

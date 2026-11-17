@@ -50,6 +50,7 @@ export default function DashboardLayout({ role }) {
         <TopBar
           today={data?.today?.today}
           unreadNotifications={data?.shell?.unreadNotifications ?? 0}
+          onNotificationsRead={reload}
         />
         {status === 'error' ? (
           <ErrorBlock message={error} onRetry={reload} />

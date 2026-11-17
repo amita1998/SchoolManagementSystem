@@ -63,6 +63,12 @@ export async function getTeacher(id) {
   return data.data;
 }
 
+/** The signed-in teacher's own record, classes and subjects (no id in the URL). */
+export async function getMyClasses() {
+  const { data } = await api.get('/teachers/me');
+  return data.data;
+}
+
 export async function createTeacher(payload) {
   const { data } = await api.post('/teachers', payload);
   return data.data;

@@ -10,6 +10,9 @@ router.use(authenticate());
 router.get('/', requirePermission(PERMISSIONS.TEACHER_VIEW_ALL), teachers.list);
 router.post('/', requirePermission(PERMISSIONS.TEACHER_MANAGE), teachers.create);
 
+// Literal before parameterised: `/me` must not be parsed as an id.
+router.get('/me', teachers.me);
+
 router.get('/:id', teachers.detail);
 router.put('/:id', requirePermission(PERMISSIONS.TEACHER_MANAGE), teachers.update);
 router.post('/:id/status', requirePermission(PERMISSIONS.TEACHER_MANAGE), teachers.changeStatus);

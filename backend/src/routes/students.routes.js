@@ -15,7 +15,7 @@ function files(field = 'documents', max = 5) {
 
 router.use(authenticate());
 
-router.get('/', requirePermission(PERMISSIONS.STUDENT_VIEW_ALL), students.list);
+router.get('/', requirePermission(PERMISSIONS.STUDENT_VIEW_ALL, PERMISSIONS.STUDENT_VIEW_ASSIGNED), students.list);
 router.post('/', requirePermission(PERMISSIONS.STUDENT_MANAGE), files(), students.create);
 
 // Literal paths before parameterised ones.

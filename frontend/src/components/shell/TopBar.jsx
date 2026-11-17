@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
+import NotificationBell from './NotificationBell.jsx';
 
 function formatToday(isoDate) {
   if (!isoDate) return '';
@@ -14,8 +15,7 @@ function formatToday(isoDate) {
   });
 }
 
-export default function TopBar({ today, unreadNotifications = 0 }) {
-  const [open, setOpen] = useState(false);
+export default function TopBar({ today, unreadNotifications = 0, onNotificationsRead }) {
   const [term, setTerm] = useState('');
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -49,29 +49,7 @@ export default function TopBar({ today, unreadNotifications = 0 }) {
           {formatToday(today)}
         </span>
 
-        <div className="topbar__bell-wrap">
-          <button
-            type="button"
-            className="topbar__bell"
-            onClick={() => setOpen((value) => !value)}
-            aria-label={`Notifications${unreadNotifications ? `, ${unreadNotifications} unread` : ''}`}
-            aria-expanded={open}
-          >
-            <i className="bi bi-bell" aria-hidden="true" />
-            {unreadNotifications > 0 && <span className="topbar__badge">{unreadNotifications}</span>}
-          </button>
-          {open && (
-            <div className="popover" role="dialog" aria-label="Notifications">
-              <strong>Notifications</strong>
-              <p>
-                {unreadNotifications > 0
-                  ? `${unreadNotifications} unread notification(s).`
-                  : 'You have no unread notifications.'}
-              </p>
-              <span className="popover__foot">The notification centre arrives in Step 8.</span>
-            </div>
-          )}
-        </div>
+        <NotificationBell unreadNotifications={unreadNotifications} onRead={onNotificationsRead} />
       </div>
     </header>
   );

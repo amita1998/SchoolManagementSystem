@@ -40,10 +40,10 @@ export default function TimetablePage({ canManage = false }) {
     if (!canManage) return;
     Promise.all([getClasses(), getSubjects(), listTeachers({ limit: 100 })])
       .then(([classList, subjectList, teacherList]) => {
-        // getClasses()/getSubjects() already return arrays; listTeachers() returns a page object.
+        // getClasses()/getSubjects() return arrays; listTeachers() is paged, so it returns { rows, meta }.
         setClasses(classList || []);
         setSubjects(subjectList || []);
-        setTeachers(teacherList.teachers || []);
+        setTeachers(teacherList.rows || []);
       })
       .catch(() => setNotice({ kind: 'error', text: 'Could not load classes, subjects or teachers.' }));
   }, [canManage]);
@@ -155,7 +155,7 @@ export default function TimetablePage({ canManage = false }) {
                   <select id="tt-teacher" value={form.teacherId} onChange={(event) => setForm({ ...form, teacherId: event.target.value })} required>
                     <option value="">…</option>
                     {teachers.map((item) => (
-                      <option key={item.id} value={item.id}>{item.first_name} {item.last_name}</option>
+                      <option key={item.id} value={item.id}>{item.firstName} {item.lastName}</option>
                     ))}
                   </select>
                 </Field>

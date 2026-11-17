@@ -180,8 +180,14 @@ is not built yet says which step it arrives in — there are no dead links and n
 | Area | Endpoints |
 |---|---|
 | Students | `GET/POST /api/students`, `GET/PUT/DELETE /api/students/:id`, `POST /:id/status`, `POST /:id/reset-password`, `POST /:id/documents`, `GET/DELETE /api/students/documents/:docId` |
-| Teachers | `GET/POST /api/teachers`, `GET/PUT/DELETE /api/teachers/:id`, `POST /:id/status`, `PUT /:id/assignments`, `POST/DELETE /:id/class-teacher`, `POST /:id/reset-password` |
+| Teachers | `GET/POST /api/teachers`, `GET /api/teachers/me`, `GET/PUT/DELETE /api/teachers/:id`, `POST /:id/status`, `PUT /:id/assignments`, `POST/DELETE /:id/class-teacher`, `POST /:id/reset-password` |
 | Academics | `GET /api/academics/options`, `GET/POST/PUT/DELETE /api/academics/classes`, `POST /api/academics/classes/:id/sections`, `PUT/DELETE /api/academics/sections/:id`, `GET/POST/PUT/DELETE /api/academics/subjects`, `PUT /api/academics/classes/:id/subjects`, `GET/POST /api/academics/years`, `POST /api/academics/years/:id/current` |
+
+`GET /api/students` is shared: an admin sees the school, a teacher gets only the classes they teach
+in the current year (`student.view.assigned`, narrowed in SQL — an unassigned teacher gets an empty
+list, not a 403 and not the school), and a student or parent is refused. `GET /api/teachers/me`
+returns the signed-in teacher's own record with their classes, subjects and class-teacher sections,
+so no screen has to guess a teacher id.
 
 **Admission** is a single `multipart/form-data` request: a `payload` JSON field plus up to five
 `documents` (PDF/JPG/PNG, 5 MB each) and a parallel `documentTypes` array. One transaction creates
@@ -269,10 +275,15 @@ off by default); parents are not gated. Until then the page says so instead of s
 |---|---|
 | Events | `GET/POST /api/comms/events`, `PUT/DELETE /api/comms/events/:id` |
 | Announcements | `GET/POST /api/comms/announcements`, `POST /:id/status` (publish/withdraw), `POST /:id/read`, `DELETE /:id` |
-| Notifications | `GET /api/comms/notifications`, `POST /api/comms/notifications/:id/read` |
+| Notifications | `GET /api/comms/notifications`, `POST /api/comms/notifications/:id/read` (missing body = read; send `{"read":false}` to undo) |
 | Assignments | `GET/POST /api/comms/assignments`, `DELETE /api/comms/assignments/:id` |
 | Periods | `GET/POST /api/timetable/periods`, `DELETE /api/timetable/periods/:id` |
 | Timetable | `GET /api/timetable/mine`, `GET /api/timetable/sections/:sectionId`, `POST /api/timetable/slots`, `DELETE /api/timetable/slots/:id` |
+
+The bell in the top bar is a real notification centre: the badge count comes from the dashboard
+payload, opening it lists the rows (`title`, `body`, `link`, `created_label`), clicking one marks it
+read and follows its `link`, and "Mark all read" walks the unread rows one by one. An announcement or
+an assignment creates the rows; a fresh database therefore has none.
 
 Audience rules live in one place (`commsService.classIdsForUser` + the `audiences` map), so every
 reader sees exactly one interpretation: `all`, `teachers`, `students`, `parents` or `selected classes`.
@@ -316,7 +327,7 @@ Behaviour worth knowing:
 # one-time: a separate database so tests never touch dev data
 createdb -h 127.0.0.1 -p 5434 -U vvs vvs_test
 cd backend && DATABASE_URL=postgresql://vvs@127.0.0.1:5434/vvs_test npm run migrate
-npm test          # 102 tests (auth → reports), ~63 s
+npm test          # 107 tests (auth → teacher portal), ~70 s
 ```
 
 `tests/support/testEnv.js` pins `NODE_ENV=test` and the `vvs_test` URL **before** anything imports
@@ -340,7 +351,10 @@ Steps 7–9 add (`tests/ops.test.js`): the fee ledger with a sequential receipt,
 both rows, students not reading fees until the setting is on and never another student's, the
 `/fees/summary/me` path, teacher double-booking (`409`), period grid + slot payload for the teacher's
 own week, announcement audience fan-out and read state, settings + audit rows, CSV export, the
-results report needing an exam (`400` / `404`), and the teacher-scoped class reports.
+results report needing an exam (`400` / `404`), and the teacher-scoped class reports. The teacher
+portal adds: `/teachers/me`, a roster narrowed to the teacher's own classes (and empty for a teacher
+with no assignments), the roster refused to students and parents, and the notification list + per-row
+read that the top-bar bell uses (another user's row answers `404`, not just `403`).
 
 ## 14. Roadmap
 

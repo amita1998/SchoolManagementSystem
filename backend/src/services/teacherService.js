@@ -426,9 +426,56 @@ export async function deleteTeacher(teacherId, actor, ip, userAgent) {
   }).then(() => ({ deleted: true }));
 }
 
+/**
+ * The signed-in teacher's own record plus the classes/subjects they teach this year and the
+ * sections they are class teacher of. Powers the teacher's "My Classes" screen and the class
+ * filter on their student roster — the client never guesses which classes it may ask about.
+ */
+export async function myTeaching(userId) {
+  const year = await currentYear();
+  const yearId = year?.id ?? 0;
+  const own = await query(
+    `SELECT id, employee_id, first_name, last_name, email
+       FROM teachers WHERE user_id = $1 AND deleted_at IS NULL`,
+    [userId],
+  );
+  if (!own.rows[0]) return { teacher: null, academicYear: year?.name ?? null, classes: [] };
+  const teacherId = own.rows[0].id;
+
+  const { rows } = await query(
+    `SELECT c.id AS class_id, c.name AS class_name,
+            string_agg(DISTINCT sub.name, ', ' ORDER BY sub.name) AS subjects,
+            (SELECT count(*)::int FROM enrollments e
+              WHERE e.class_id = c.id AND e.academic_year_id = $2 AND e.status = 'active') AS students,
+            COALESCE((SELECT json_agg(json_build_object('id', s.id, 'name', s.name) ORDER BY s.name)
+                        FROM sections s
+                        JOIN class_teachers ct ON ct.section_id = s.id AND ct.academic_year_id = $2
+                       WHERE s.class_id = c.id AND ct.teacher_id = $1), '[]'::json) AS class_teacher_of
+       FROM teacher_subjects ts
+       JOIN classes c ON c.id = ts.class_id
+       JOIN subjects sub ON sub.id = ts.subject_id AND sub.deleted_at IS NULL
+      WHERE ts.teacher_id = $1 AND ts.academic_year_id = $2
+      GROUP BY c.id, c.name, c.level_order
+      ORDER BY c.level_order`,
+    [teacherId, yearId],
+  );
+
+  return {
+    teacher: {
+      id: Number(teacherId),
+      employeeId: own.rows[0].employee_id,
+      name: `${own.rows[0].first_name} ${own.rows[0].last_name}`,
+      email: own.rows[0].email,
+    },
+    academicYear: year?.name ?? null,
+    classes: rows.map((row) => ({ ...row, class_id: Number(row.class_id) })),
+  };
+}
+
 export default {
   listTeachers,
   getTeacher,
+  myTeaching,
   createTeacher,
   updateTeacher,
   changeTeacherStatus,

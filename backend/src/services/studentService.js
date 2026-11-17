@@ -43,10 +43,28 @@ function mapStudent(row) {
 // List
 // ---------------------------------------------------------------------------
 
-export async function listStudents({ search, classId, sectionId, status, page, limit, offset }) {
+/**
+ * A teacher holds `student.view.assigned`, so the roster must be limited to the classes they
+ * actually teach in the current academic year. Admin gets `null` = no restriction.
+ */
+async function teacherClassScope(actor) {
+  if (!actor || actor.role !== 'teacher') return null;
+  const year = await currentYear();
+  const { rows } = await query(
+    `SELECT DISTINCT ts.class_id
+       FROM teacher_subjects ts
+       JOIN teachers t ON t.id = ts.teacher_id
+      WHERE t.user_id = $1 AND ts.academic_year_id = $2`,
+    [actor.id, year?.id ?? 0],
+  );
+  return rows.map((row) => row.class_id);
+}
+
+export async function listStudents({ search, classId, sectionId, status, page, limit, offset }, actor) {
   const year = await currentYear();
   const yearId = year?.id ?? 0;
   const term = search ? `%${search.trim()}%` : null;
+  const scope = await teacherClassScope(actor);
 
   const filters = `
     s.deleted_at IS NULL
@@ -54,8 +72,9 @@ export async function listStudents({ search, classId, sectionId, status, page, l
     AND ($2::int IS NULL OR e.class_id = $2)
     AND ($3::int IS NULL OR e.section_id = $3)
     AND ($4::text IS NULL OR s.status::text = $4)
+    AND ($5::int[] IS NULL OR e.class_id = ANY($5::int[]))
   `;
-  const params = [term, classId ?? null, sectionId ?? null, status ?? null];
+  const params = [term, classId ?? null, sectionId ?? null, status ?? null, scope];
 
   const [rows, total] = await Promise.all([
     query(
@@ -64,17 +83,17 @@ export async function listStudents({ search, classId, sectionId, status, page, l
               (SELECT p.mobile FROM student_parents sp JOIN parents p ON p.id = sp.parent_id
                 WHERE sp.student_id = s.id ORDER BY sp.is_primary DESC LIMIT 1) AS guardian_mobile
          FROM students s
-         LEFT JOIN enrollments e ON e.student_id = s.id AND e.academic_year_id = $5
+         LEFT JOIN enrollments e ON e.student_id = s.id AND e.academic_year_id = $6
          LEFT JOIN classes c ON c.id = e.class_id
          LEFT JOIN sections sec ON sec.id = e.section_id
         WHERE ${filters}
         ORDER BY s.admission_id
-        LIMIT $6 OFFSET $7`,
+        LIMIT $7 OFFSET $8`,
       [...params, yearId, limit, offset],
     ),
     query(
       `SELECT count(*)::int AS total FROM students s
-         LEFT JOIN enrollments e ON e.student_id = s.id AND e.academic_year_id = $5
+         LEFT JOIN enrollments e ON e.student_id = s.id AND e.academic_year_id = $6
         WHERE ${filters}`,
       [...params, yearId],
     ),

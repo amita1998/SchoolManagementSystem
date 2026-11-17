@@ -548,3 +548,89 @@ describe('settings, audit and reports', () => {
     assert.equal(unassignedAttendance.body.data.total, 0);
   });
 });
+
+describe('teacher portal', () => {
+  it('shows a teacher their own classes and only their own roster', async () => {
+    const teacher = await login('teacher', ACCOUNTS.teacher.username);
+
+    const mine = await call('GET', '/api/teachers/me', { token: teacher });
+    assert.equal(mine.status, 200, JSON.stringify(mine.body));
+    assert.equal(mine.body.data.teacher.name, 'Test Teacher');
+    assert.equal(mine.body.data.classes.length, 1);
+    assert.equal(mine.body.data.classes[0].class_name, 'Class 5');
+    assert.match(mine.body.data.classes[0].subjects, /Mathematics/);
+    assert.deepEqual(
+      mine.body.data.classes[0].class_teacher_of.map((section) => section.name),
+      ['A'],
+      'the class-teacher section is part of the payload',
+    );
+
+    const roster = await call('GET', '/api/students', { token: teacher });
+    assert.equal(roster.status, 200, JSON.stringify(roster.body));
+    assert.equal(roster.body.data.meta.total, 2);
+    assert.ok(roster.body.data.rows.every((row) => row.className === 'Class 5'));
+  });
+
+  it('answers an empty roster for a teacher who teaches nothing', async () => {
+    const hash = await bcrypt.hash(TEST_PASSWORD, 4);
+    const outsider = await pool.query(
+      `INSERT INTO users (role_id, username, email, password_hash, must_change_password)
+       VALUES ((SELECT id FROM roles WHERE code = 'teacher'), $1, $1, $2, FALSE)
+       ON CONFLICT (lower(username)) DO NOTHING RETURNING id`,
+      ['outsider.teacher@vvs.test', hash],
+    );
+    if (outsider.rows[0]) {
+      await pool.query(
+        `INSERT INTO teachers (user_id, first_name, last_name, gender, mobile, email, joining_date, status)
+         VALUES ($1, 'Outsider', 'Teacher', 'male', '9800000009', 'outsider.teacher@vvs.test', '2026-04-01', 'active')
+         ON CONFLICT DO NOTHING`,
+        [outsider.rows[0].id],
+      );
+    }
+
+    const unassigned = await login('teacher', 'outsider.teacher@vvs.test');
+    const roster = await call('GET', '/api/students', { token: unassigned });
+    assert.equal(roster.status, 200);
+    assert.equal(roster.body.data.meta.total, 0, 'no assignments means no visible students');
+  });
+
+  it('keeps the student roster away from students and parents', async () => {
+    const student = await login('student', ACCOUNTS.student.username);
+    assert.equal((await call('GET', '/api/students', { token: student })).status, 403);
+
+    const parent = await login('parent', ACCOUNTS.parent.username);
+    assert.equal((await call('GET', '/api/students', { token: parent })).status, 403);
+  });
+});
+
+describe('notification centre', () => {
+  it('lists notifications with an unread count and marks one read', async () => {
+    const student = await login('student', ACCOUNTS.student.username);
+
+    const before = await call('GET', '/api/comms/notifications', { token: student });
+    assert.equal(before.status, 200, JSON.stringify(before.body));
+    assert.ok(before.body.data.notifications.length >= 1);
+    const unread = before.body.data.counts.unread;
+    assert.ok(unread >= 1, 'the published announcement and assignment notify the student');
+
+    const target = before.body.data.notifications.find((item) => item.read_at === null);
+    assert.ok(target, 'at least one row is unread');
+    assert.ok(target.type, 'a notification carries its type for the icon');
+
+    const marked = await call('POST', `/api/comms/notifications/${target.id}/read`, { token: student });
+    assert.equal(marked.status, 200, JSON.stringify(marked.body));
+
+    const after = await call('GET', '/api/comms/notifications', { token: student });
+    assert.equal(after.body.data.counts.unread, unread - 1);
+  });
+
+  it('never lets one user mark another user\'s notification', async () => {
+    const student = await login('student', ACCOUNTS.student.username);
+    const list = await call('GET', '/api/comms/notifications', { token: student });
+    const foreignId = list.body.data.notifications[0].id;
+
+    const parent = await login('parent', ACCOUNTS.parent.username);
+    const refused = await call('POST', `/api/comms/notifications/${foreignId}/read`, { token: parent });
+    assert.equal(refused.status, 404, 'another user\'s row is not found, not merely forbidden');
+  });
+});

@@ -287,3 +287,30 @@ a password would wipe real data.
 
 **Consequences.** The dev database is never a source of truth for credentials, and no password is
 ever quoted from an old transcript — the command is re-run instead.
+
+## ADR-020 — one roster endpoint, scoped by the actor; `me` instead of a guessed id
+
+**Decision.** `GET /api/students` serves both the admin list and the teacher roster. The service
+narrows it in SQL to the classes the caller teaches this year (`student.view.assigned`); an
+unassigned teacher gets an empty page, a student or parent gets `403`. `GET /api/teachers/me`
+returns the caller's own classes/subjects/class-teacher sections, so the teacher screens never have
+to hard-code or guess an id.
+
+**Reason.** Two lists with two queries drift: the teacher one would eventually miss the academic-year
+join or the status filter. One list with one scope keeps a single definition of "the students I may
+see". The same reason `me` exists: a `:id` route invites a client to invent an id, and a teacher
+screen has no legitimate way to know its own `teachers.id`.
+
+**Consequences.** A teacher clicking through to a student record is still refused (`GET /students/:id`
+allows the student, their parents and `student.view.all`), so the teacher screen is read-only by
+design — a profile page for teachers is a new permission decision, not a UI change.
+
+## ADR-021 — a "mark read" endpoint defaults to read
+
+**Decision.** `POST /api/comms/notifications/:id/read` treats a missing body as `read: true`; only an
+explicit `{"read": false}` flips it back. The route path states the intent, so the safer default is
+the one the path names.
+
+**Reason.** `Boolean(req.body.read)` on an empty body is `false`: the endpoint named "read" marked the
+row **unread**, the badge never fell, and every caller had to remember to send a body. A test that
+posts no body now asserts the unread count drops by one.

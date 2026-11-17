@@ -41,6 +41,11 @@ export const detail = asyncHandler(async (req, res) => {
   res.json({ success: true, data: await teachers.getTeacher(id) });
 });
 
+/** The signed-in teacher's own record + classes; no id in the URL, so nothing to tamper with. */
+export const me = asyncHandler(async (req, res) => {
+  res.json({ success: true, data: await teachers.myTeaching(req.user.id) });
+});
+
 export const create = asyncHandler(async (req, res) => {
   const payload = parseBody(teacherSchema, req.body);
   const result = await teachers.createTeacher({

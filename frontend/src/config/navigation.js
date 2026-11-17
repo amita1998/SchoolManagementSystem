@@ -23,8 +23,8 @@ export const NAVIGATION = {
   ],
   teacher: [
     { label: 'Dashboard', to: '/teacher', icon: 'bi-house-door', end: true },
-    { label: 'My Classes', to: '/teacher/classes', icon: 'bi-grid-3x3-gap', permission: P.STUDENT_VIEW_ASSIGNED, step: 4 },
-    { label: 'Students', to: '/teacher/students', icon: 'bi-people', permission: P.STUDENT_VIEW_ASSIGNED, step: 4 },
+    { label: 'My Classes', to: '/teacher/classes', icon: 'bi-grid-3x3-gap', permission: P.STUDENT_VIEW_ASSIGNED },
+    { label: 'Students', to: '/teacher/students', icon: 'bi-people', permission: P.STUDENT_VIEW_ASSIGNED },
     { label: 'Attendance', to: '/teacher/attendance', icon: 'bi-calendar2-check', permission: P.ATTENDANCE_MARK, step: 5 },
     { label: 'Marks', to: '/teacher/marks', icon: 'bi-journal-check', permission: P.MARKS_ENTER, step: 6 },
     { label: 'Assignments', to: '/teacher/assignments', icon: 'bi-journal-plus', permission: P.ASSIGNMENT_MANAGE },
@@ -44,7 +44,7 @@ export const NAVIGATION = {
   ],
   parent: [
     { label: 'Dashboard', to: '/parent', icon: 'bi-house-door', end: true },
-    { label: 'My Children', to: '/parent/children', icon: 'bi-people', permission: P.STUDENT_VIEW_CHILDREN, step: 4 },
+    { label: 'My Children', to: '/parent/children', icon: 'bi-people', permission: P.STUDENT_VIEW_CHILDREN },
     { label: 'Attendance', to: '/parent/attendance', icon: 'bi-calendar2-check', permission: P.ATTENDANCE_VIEW_CHILDREN, step: 5 },
     { label: 'Results', to: '/parent/results', icon: 'bi-journal-text', permission: P.RESULT_VIEW_CHILDREN, step: 6 },
     { label: 'Fees', to: '/parent/fees', icon: 'bi-receipt', permission: P.FEE_VIEW_CHILDREN },
