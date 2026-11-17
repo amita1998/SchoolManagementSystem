@@ -1,0 +1,46 @@
+/* Examination screens (Step 6). */
+
+.marks-input {
+  width: 88px;
+  padding: 7px 10px;
+  border: 1px solid var(--vvs-border);
+  border-radius: 9px;
+  font-family: inherit;
+  font-size: 0.84rem;
+  text-align: right;
+}
+
+.marks-input:focus {
+  outline: none;
+  border-color: var(--vvs-primary);
+  box-shadow: 0 0 0 3px rgba(95, 109, 176, 0.14);
+}
+
+.marks-input:disabled {
+  background: #f7f7fb;
+  color: var(--vvs-muted);
+}
+
+.result-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+}
+
+.result-total strong {
+  font-size: 1.5rem;
+  color: var(--vvs-primary-dark);
+  letter-spacing: -0.4px;
+}
+
+.result-total span {
+  font-size: 0.74rem;
+  color: var(--vvs-muted);
+}
+
+.text-mint {
+  color: var(--vvs-success);
+  margin-left: 6px;
+}

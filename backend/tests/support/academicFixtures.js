@@ -154,8 +154,10 @@ export async function seedAcademicFixtures() {
   );
   // grades are reference data created by the seed script, not by a migration
   const grade = await pool.query(
-    `INSERT INTO grades (code, min_percent, max_percent, grade_point, sort_order)
-     VALUES ('A', 80, 89.99, 9, 2), ('E', 0, 39.99, 4, 7)
+    `INSERT INTO grades (code, min_percent, max_percent, grade_point, sort_order) VALUES
+       ('A+', 90, 100, 10, 1), ('A', 80, 89.99, 9, 2), ('B+', 70, 79.99, 8, 3),
+       ('B', 60, 69.99, 7, 4), ('C', 50, 59.99, 6, 5), ('D', 40, 49.99, 5, 6),
+       ('E', 0, 39.99, 4, 7)
      ON CONFLICT (code) DO UPDATE SET max_percent = EXCLUDED.max_percent
      RETURNING id, code`,
   );

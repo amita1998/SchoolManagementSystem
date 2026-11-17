@@ -163,7 +163,47 @@ The response is `423 ACCOUNT_LOCKED` with the remaining minutes. Independently,
 `express-rate-limit` caps sign-in attempts per IP (20 / 15 min, successful attempts excluded) so
 one host cannot spray many accounts. Only failures and lockouts are audited, never passwords.
 
-## ADR-011 — admission is one request, and the audit row joins the transaction
+## ADR-011 — attendance is a daily record, corrections are a request
+
+`attendance` holds exactly one row per student per calendar day (`UNIQUE (student_id,
+attendance_date)`), which makes re-saving a sheet an upsert instead of a duplicate factory.
+The lock is a **server** rule: only `today` (computed in the database with `AT TIME ZONE
+'Asia/Kolkata'`) accepts a write; anything older returns `409 ATTENDANCE_LOCKED` and must go
+through `attendance_corrections`.
+
+A correction stores `old_status` and `requested_status` at request time, so the record survives
+even if the attendance row changes later. Approving copies the requested status onto the
+attendance row inside the same transaction that marks the request reviewed; rejecting touches
+nothing. Both decisions write an audit row with the reviewer's id and comment.
+
+`admin` deliberately lacks `attendance.mark` — the matrix says admins monitor, not mark. The
+role's `'*'` wildcard would have granted it, so the permission list for admin excludes nothing;
+instead the **route** requires `attendance.mark`, which only `teacher` holds. That is why
+`roleHasPermission('admin', 'attendance.mark')` must stay false — it is asserted in the tests.
+
+## ADR-012 — marks lifecycle and the publish gate
+
+`draft → submitted → (admin unlock) → draft`. A teacher can only edit while the paper has no
+submitted rows; after that the API answers `409 MARKS_SUBMITTED`, and a published exam answers
+`409 MARKS_LOCKED`. Submission requires every enrolled student to have a row (marks or `absent`),
+so a report card can never silently omit a pupil.
+
+Publishing is refused while any paper is incomplete (`MARKS_INCOMPLETE`) — this is what stops a
+half-entered exam reaching parents. Grade rows are looked up from the `grades` table at save time
+and stored on the mark, so a later change to the scale does not rewrite history.
+
+Admin override requires a reason (`400` without one) and writes `old_values`/`new_values` plus
+the reason to the audit log; the test asserts the exact previous mark is in that row.
+
+## ADR-013 — one report-card endpoint for four roles
+
+`GET /api/exams/results/student/:id?examId=` (with `:id = me` for students) returns the same
+shape to a student, a parent, a teacher of that class and an admin; only the access check
+differs. Students and parents are additionally blocked with `403 RESULT_NOT_PUBLISHED` until the
+exam is published, which is the acceptance criterion. Rank is computed only for published exams
+so an unpublished exam cannot leak relative standing.
+
+## ADR-014 — admission is one request, and the audit row joins the transaction
 
 **Admission** accepts `multipart/form-data` with a JSON `payload` plus up to five files. Everything
 (student, login, enrollment, guardians, documents, first status-history row) is written in one
@@ -184,7 +224,7 @@ transaction returns the pre-update version, because that is a different connecti
 that changes data now commits first and reads afterwards; the status-change test asserts the
 returned object carries the new status, which is how this was caught.
 
-## ADR-012 — soft delete never frees a business number
+## ADR-015 — soft delete never frees a business number
 
 `students.admission_id`, `teachers.employee_id` and `fee_receipts.receipt_no` stay unique even after
 a soft delete, because the numbers must never be reused. Deleting sets `deleted_at`, disables the

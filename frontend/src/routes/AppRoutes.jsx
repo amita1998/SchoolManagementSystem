@@ -16,7 +16,17 @@ import TeachersPage from '../pages/admin/TeachersPage.jsx';
 import TeacherFormPage from '../pages/admin/TeacherFormPage.jsx';
 import TeacherProfilePage from '../pages/admin/TeacherProfilePage.jsx';
 import AcademicsPage from '../pages/admin/AcademicsPage.jsx';
+import AdminAttendancePage from '../pages/admin/AdminAttendancePage.jsx';
+import TeacherAttendancePage from '../pages/teacher/TeacherAttendancePage.jsx';
+import StudentAttendancePage from '../pages/student/StudentAttendancePage.jsx';
+import ParentAttendancePage from '../pages/parent/ParentAttendancePage.jsx';
+import AdminExamsPage from '../pages/admin/AdminExamsPage.jsx';
+import TeacherMarksPage from '../pages/teacher/TeacherMarksPage.jsx';
+import ResultsPage from '../pages/student/ResultsPage.jsx';
+import ParentResultsPage from '../pages/parent/ParentResultsPage.jsx';
 import '../styles/admin.css';
+import '../styles/attendance.css';
+import '../styles/exams.css';
 import TeacherDashboard from '../pages/teacher/TeacherDashboard.jsx';
 import StudentDashboard from '../pages/student/StudentDashboard.jsx';
 import ParentDashboard from '../pages/parent/ParentDashboard.jsx';
@@ -67,6 +77,8 @@ export default function AppRoutes() {
         <Route path="teachers/new" element={<TeacherFormPage />} />
         <Route path="teachers/:id" element={<TeacherProfilePage />} />
         <Route path="classes" element={<AcademicsPage />} />
+        <Route path="attendance" element={<AdminAttendancePage />} />
+        <Route path="examinations" element={<AdminExamsPage />} />
         <Route path="*" element={<ComingSoon />} />
       </Route>
 
@@ -79,6 +91,8 @@ export default function AppRoutes() {
         }
       >
         <Route index element={<TeacherDashboard />} />
+        <Route path="attendance" element={<TeacherAttendancePage />} />
+        <Route path="marks" element={<TeacherMarksPage />} />
         <Route path="*" element={<ComingSoon />} />
       </Route>
 
@@ -91,6 +105,8 @@ export default function AppRoutes() {
         }
       >
         <Route index element={<StudentDashboard />} />
+        <Route path="attendance" element={<StudentAttendancePage />} />
+        <Route path="results" element={<ResultsPage title="My results" />} />
         <Route path="*" element={<ComingSoon />} />
       </Route>
 
@@ -103,6 +119,8 @@ export default function AppRoutes() {
         }
       >
         <Route index element={<ParentDashboard />} />
+        <Route path="attendance" element={<ParentAttendancePage />} />
+        <Route path="results" element={<ParentResultsPage />} />
         <Route path="*" element={<ComingSoon />} />
       </Route>
 

@@ -3,10 +3,10 @@
 Web application for a single school (Nursery to Class 12, academic year April–March,
 English only). React + Express + PostgreSQL.
 
-> Build status: **Steps 1–4 of 9 complete** — setup/schema/seed, authentication, dashboard shell
-> with four role dashboards, and student / teacher / class / subject management (five-step
-> admission with documents, generated IDs, account creation, lifecycle history).
-> Attendance is Step 5.
+> Build status: **Steps 1–6 of 9 complete** — setup/schema/seed, authentication, dashboard shell,
+> student/teacher/class/subject management, attendance with the correction workflow, and
+> examinations → marks → report cards.
+> Fees are Step 7.
 
 ---
 
@@ -198,13 +198,52 @@ Behaviour worth knowing:
   `CLASS_EXISTS`, …) instead of leaking a database error.
 * A teacher who is still a class teacher cannot be deactivated or deleted.
 
-## 9. Tests
+## 9. Attendance & examinations (Steps 5–6)
+
+**Attendance**
+
+| Method | Path | Who |
+|---|---|---|
+| GET | `/api/attendance/sections` | teacher — sections where they are class teacher |
+| GET | `/api/attendance/sheet?sectionId&date` | class teacher (editable) / admin (read-only) |
+| POST | `/api/attendance/mark` | class teacher only |
+| GET | `/api/attendance` | role-scoped list + summary |
+| GET | `/api/attendance/summary/:studentId` (or `me`) | student own / parent child / staff |
+| POST | `/api/attendance/corrections` | class teacher |
+| GET | `/api/attendance/corrections` | admin (all) / teacher (own) |
+| POST | `/api/attendance/corrections/:id/review` | admin |
+
+One row per student per day. Today is editable until 23:59 IST; a past day returns
+`409 ATTENDANCE_LOCKED` and the change must go through a correction request that an admin
+approves or rejects. Both the old and the new value are kept with the requester and reviewer.
+Percentage = `(present + late + half-day × 0.5) / marked days`; holidays never enter the
+denominator because no row exists for them.
+
+**Examinations**
+
+| Method | Path | Who |
+|---|---|---|
+| GET/POST | `/api/exams` | admin (list/create) |
+| GET | `/api/exams/mine` | teacher — papers for their classes/subjects |
+| POST | `/api/exams/:id/schedules` | admin |
+| POST | `/api/exams/:id/publish` | admin — refused until every paper is fully entered |
+| GET/PUT | `/api/exams/marks/:scheduleId` | teacher of that class+subject / admin |
+| POST | `/api/exams/marks/:scheduleId/unlock` | admin |
+| POST | `/api/exams/marks/:scheduleId/override` | admin, reason required, audited |
+| GET | `/api/exams/results/student/:id` (or `me`) | own / children / staff |
+| GET | `/api/exams/results/class/:classId/exam/:examId` | admin / teacher |
+
+Marks move `draft → submitted`; a submitted paper is read-only for the teacher until an admin
+unlocks it, and an admin override demands a reason and writes old + new values to the audit log.
+Students and parents can only read an exam after it is published, and only their own card.
+
+## 10. Tests
 
 ```bash
 # one-time: a separate database so tests never touch dev data
 createdb -h 127.0.0.1 -p 5434 -U vvs vvs_test
 cd backend && DATABASE_URL=postgresql://vvs@127.0.0.1:5434/vvs_test npm run migrate
-npm test          # 40 tests (auth + dashboards + management), node:test, ~15 s
+npm test          # 71 tests (auth + dashboards + management + attendance + exams), ~20 s
 ```
 
 `tests/support/testEnv.js` pins `NODE_ENV=test` and the `vvs_test` URL **before** anything imports
@@ -221,15 +260,18 @@ another role's dashboard (`403`). Step 4 adds: admission (student + login + guar
 one call), sequential IDs, file-type rejection, server-side search/filter/pagination, status
 persistence, a student reading another student's record (`403`), teacher creation, the
 one-section-per-teacher rule, the class-teacher deactivation guard, and subject-deletion guards.
+Steps 5–6 add: the attendance lock for a past day, the admin-cannot-mark rule, the correction
+approve/reject lifecycle, the percentage formula, marks out of range, submit-incomplete, teacher
+scope on a paper they do not teach, the publish gate, and the override audit trail.
 
-## 10. Roadmap
+## 11. Roadmap
 
 1. ✅ Setup, schema, migrations, seed
 2. ✅ Authentication, roles, common login page
 3. ✅ Layout shell + four dashboards
 4. ✅ Student, teacher, class, subject management
-5. Attendance + correction workflow
-6. Examinations, marks, report cards
+5. ✅ Attendance + correction workflow
+6. ✅ Examinations, marks, report cards
 7. Fees and receipts
 8. Events, announcements, notifications, assignments, timetable
 9. Reports, settings, audit log
