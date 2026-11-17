@@ -1,210 +1,751 @@
-/* Fees: collection ledger, structures and receipts. */
-.stat-row {
-  display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  margin-bottom: 18px;
+/* ═════════════════════════════════════════════════════════════
+   Admin finance + insight screens: fees, reports, settings, audit.
+   None of those screens owns a stylesheet beyond this one, so the module
+   shares one vocabulary here. Shared primitives (cards, tables, forms,
+   chips, tabs, notices) stay in ui.css; every rule below is page-scoped —
+   no bare shared selector is redefined.
+   ═════════════════════════════════════════════════════════════ */
+
+/* ── money cells ─────────────────────────────────────────────── */
+.fee-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.stat-tile {
-  background: #fff;
-  border-radius: 20px;
-  padding: 16px 18px;
-  box-shadow: 0 10px 30px rgba(45, 49, 86, 0.06);
-}
-
-.stat-tile span {
-  display: block;
-  color: #7b7f9e;
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.stat-tile strong {
-  font-size: 22px;
-  color: #2d3156;
-}
-
-.tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.tabs button {
-  border: 0;
-  background: #fff;
-  color: #5f6db0;
-  border-radius: 999px;
-  padding: 8px 18px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 6px 18px rgba(45, 49, 86, 0.05);
-}
-
-.tabs button.is-active {
-  background: #5f6db0;
-  color: #fff;
-}
-
-.picker {
-  list-style: none;
-  margin: 10px 0 0;
-  padding: 0;
-  border: 1px solid #e6e7f2;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.picker button {
-  width: 100%;
-  border: 0;
-  background: #fff;
-  padding: 10px 14px;
-  text-align: left;
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  cursor: pointer;
-}
-
-.picker button:hover {
-  background: #f6f6fc;
-}
-
-.picker span {
-  color: #7b7f9e;
-  font-size: 13px;
-}
-
-.section-card__stat {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  font-size: 13px;
-  color: #7b7f9e;
-}
-
-.section-card__stat strong {
-  color: #2d3156;
-}
-
-.filter-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
-}
-
-.filter-row input {
-  border: 1px solid #e2e3ef;
-  border-radius: 12px;
-  padding: 9px 12px;
-  font: inherit;
-  color: #2d3156;
-  background: #fff;
-}
-
-.filter-row input[placeholder] {
-  min-width: 240px;
-  flex: 1;
-}
-
-.is-due {
-  color: #d9534f;
-  font-weight: 600;
-}
-
-.is-muted td {
-  color: #9a9db5;
-}
-
-.inline-form {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px dashed #e6e7f2;
-  color: #7b7f9e;
-  font-size: 13px;
-}
-
-.inline-form input {
-  border: 1px solid #e2e3ef;
-  border-radius: 10px;
-  padding: 7px 10px;
-  font: inherit;
-  width: 160px;
-}
-
-.row-actions {
+/* Two classes: beats `.data-table thead th { text-align: left }` without
+   touching the shared table rule. */
+.data-table .fee-num {
   text-align: right;
 }
 
-.modal-backdrop {
+/* Doubled class on purpose: `.data-table tbody td` and `.stat-tile__value`
+   both set colour at (0,1,2)/(0,1,0), and ui.css loads after this file. Two
+   classes on the modifier wins on specificity instead of on order. */
+.fee-num.fee-num--strong {
+  color: var(--ink-900);
+  font-weight: 620;
+}
+
+.fee-num.fee-num--due {
+  color: var(--danger-ink);
+  font-weight: 660;
+}
+
+.fee-num.fee-num--settled {
+  color: var(--ok-ink);
+  font-weight: 620;
+}
+
+.fee-num.fee-num--zero {
+  color: var(--ink-300);
+}
+
+.fee-receipt {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ink-900);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fee-date {
+  font-size: 12.5px;
+  color: var(--ink-400);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fee-cell-note {
+  display: block;
+  font-size: 11.5px;
+  color: var(--ink-400);
+  font-variant-numeric: tabular-nums;
+}
+
+.fee-reversal-row td {
+  background: var(--surface-sunken);
+}
+
+.fee-reversal-row .fee-receipt {
+  color: var(--ink-400);
+}
+
+/* Neutral chip: payment mode, plan name, role, entity type. Text is always
+   present, so colour is never the only signal. */
+.soft-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface-sunken);
+  color: var(--ink-500);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+/* Acronyms (UPI, LKG) and already-cased labels must survive untouched; roles
+   and other single lowercase words opt into capitalisation. */
+.soft-chip--cap {
+  text-transform: capitalize;
+}
+
+.soft-chip--mono {
+  font-family: var(--font-mono);
+  text-transform: none;
+}
+
+/* ── student picker (search results) ─────────────────────────── */
+.fee-picker {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  max-height: 268px;
+  overflow-y: auto;
+}
+
+.fee-picker li + li {
+  border-top: 1px solid var(--line);
+}
+
+.fee-picker button {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 0;
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--ink-700);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.fee-picker button:hover {
+  background: var(--brand-50);
+}
+
+.fee-picker strong {
+  font-weight: 620;
+  color: var(--ink-900);
+  overflow-wrap: anywhere;
+}
+
+.fee-picker span {
+  font-size: 12px;
+  color: var(--ink-400);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── filter bars (fees ledger, reports, audit) ──────────────── */
+/* Layout + divider come from `.filters` in ui.css; this only gives the bare
+   inputs/selects the same 36px chrome as the shared form controls. */
+.filters.finance-filters input,
+.filters.finance-filters select {
+  height: 36px;
+  min-width: 0;
+  padding: 0 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink-800);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.filters.finance-filters select {
+  appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%23767c99' stroke-width='1.6' stroke-linecap='round' d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  cursor: pointer;
+}
+
+.filters.finance-filters input[type='date'] {
+  color: var(--ink-700);
+}
+
+.filters.finance-filters input:hover,
+.filters.finance-filters select:hover {
+  border-color: var(--ink-200);
+}
+
+.filters.finance-filters input:focus,
+.filters.finance-filters select:focus {
+  outline: none;
+  border-color: var(--brand-500);
+  box-shadow: var(--ring);
+}
+
+.filters.finance-filters .filters__search {
+  flex: 1 1 240px;
+  min-width: 180px;
+}
+
+/* ── summary strip above a ledger ───────────────────────────── */
+.fee-summary {
+  margin: 0 0 14px;
+}
+
+.fee-summary .summary-chip--due {
+  border-color: var(--danger-line);
+  background: var(--danger-bg);
+}
+
+.fee-summary .summary-chip--due strong {
+  color: var(--danger-ink);
+}
+
+.fee-summary .summary-chip--paid {
+  border-color: var(--ok-line);
+  background: var(--ok-bg);
+}
+
+.fee-summary .summary-chip--paid strong {
+  color: var(--ok-ink);
+}
+
+/* ── inline create row (categories) ─────────────────────────── */
+.fee-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed var(--line);
+}
+
+.fee-inline-form .field {
+  flex: 0 1 220px;
+  max-width: 240px;
+}
+
+.fee-inline-form .field input {
+  min-height: 38px;
+}
+
+/* ── assign-structure card ──────────────────────────────────── */
+.fee-assign__block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-sunken);
+}
+
+.fee-assign__block > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fee-assign__label {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+}
+
+.fee-assign__block strong {
+  font-size: 13.5px;
+  font-weight: 640;
+  color: var(--ink-900);
+}
+
+.fee-assign__block p {
+  font-size: 12px;
+  color: var(--ink-400);
+  font-variant-numeric: tabular-nums;
+}
+
+.fee-assign__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.fee-assign__hint {
+  font-size: 12px;
+  color: var(--ink-400);
+  line-height: 1.5;
+}
+
+.fee-assign .field {
+  margin-top: 4px;
+}
+
+/* ── installments list (parent/student fee panel) ───────────── */
+.fee-installments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fee-installments li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-sunken);
+}
+
+.fee-installments li > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fee-installments li > div:last-child {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.fee-installments h4 {
+  font-size: 13px;
+  font-weight: 620;
+  color: var(--ink-900);
+}
+
+.fee-installments span {
+  font-size: 12px;
+  color: var(--ink-400);
+}
+
+.fee-installments__amount {
+  font-size: 13px;
+  font-weight: 640;
+  color: var(--ink-900);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fee-child-select {
+  height: 36px;
+  padding: 0 30px 0 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink-800);
+  cursor: pointer;
+}
+
+.fee-child-select:focus {
+  outline: none;
+  border-color: var(--brand-500);
+  box-shadow: var(--ring);
+}
+
+/* ── modals (record payment, reverse payment) ───────────────── */
+.fee-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(45, 49, 86, 0.35);
+  z-index: 50;
   display: grid;
   place-items: center;
   padding: 20px;
-  z-index: 40;
+  background: rgba(20, 23, 43, 0.45);
+  backdrop-filter: blur(3px);
 }
 
-.modal {
-  background: #fff;
-  border-radius: 24px;
-  padding: 22px 24px;
-  width: min(420px, 100%);
-  box-shadow: 0 30px 60px rgba(45, 49, 86, 0.2);
-}
-
-.modal h3 {
-  margin: 0 0 6px;
-}
-
-.btn--danger {
-  background: #ee8791;
-  color: #fff;
-  border: 0;
-  border-radius: 12px;
-  padding: 9px 16px;
-  font-weight: 600;
-}
-
-.btn--danger:disabled {
-  opacity: 0.55;
-}
-
-/* Hand-rolled field block used by the fee screens (matches .form-field visually). */
-.field {
+.fee-modal {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  width: min(560px, 100%);
+  max-height: calc(100vh - 40px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-3);
+  overflow: hidden;
 }
 
-.field label {
+.fee-modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.fee-modal__head h3 {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.fee-modal__head p {
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--ink-400);
+  font-variant-numeric: tabular-nums;
+}
+
+.fee-modal__close {
+  flex: 0 0 auto;
+  border: 0;
+  background: none;
+  padding: 4px;
+  border-radius: var(--r-xs);
+  font-size: 16px;
+  line-height: 1;
+  color: var(--ink-400);
+  cursor: pointer;
+}
+
+.fee-modal__close:hover {
+  background: var(--surface-sunken);
+  color: var(--ink-800);
+}
+
+.fee-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* The form is the modal's middle wrapper, so it has to carry the column
+   layout for the scrolling body + fixed footer. */
+.fee-modal > form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.fee-modal__body .form-grid {
+  gap: 14px 16px;
+}
+
+.fee-modal__note {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--info-line);
+  border-radius: var(--r-md);
+  background: var(--info-bg);
+  color: var(--info-ink);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.fee-modal__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-sunken);
+}
+
+.fee-modal__foot span {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--ink-400);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 720px) {
+  .fee-modal {
+    max-height: calc(100vh - 24px);
+  }
+
+  .fee-modal__head,
+  .fee-modal__body,
+  .fee-modal__foot {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .fee-modal__foot {
+    flex-wrap: wrap;
+  }
+}
+
+/* ── reports ────────────────────────────────────────────────── */
+.filters.report-toolbar {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.report-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.report-hint {
+  margin: -4px 0 14px;
+  font-size: 12.5px;
+  color: var(--ink-500);
+  line-height: 1.55;
+}
+
+.report-count {
+  font-size: 12px;
+  color: var(--ink-400);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Two classes so this beats `.table-wrap { overflow: hidden }` in ui.css:
+   the preview table scrolls, which is what makes the sticky head useful. */
+.table-wrap.report-scroll {
+  max-height: 560px;
+  overflow: auto;
+}
+
+.report-note {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--ink-400);
+}
+
+.report-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── settings ───────────────────────────────────────────────── */
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-card__intro {
+  margin: -4px 0 16px;
+  max-width: 84ch;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-500);
+}
+
+.settings-card .form-field input,
+.settings-card .form-field select,
+.settings-card .field input,
+.settings-card .field select {
+  min-height: 38px;
+}
+
+.settings-savebar {
+  position: sticky;
+  bottom: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-2);
+}
+
+.settings-savebar__hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-400);
+}
+
+.settings-savebar__hint i {
+  color: var(--ink-300);
+}
+
+.settings-savebar__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.settings-card .check-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-sunken);
+  font-size: 13px;
+  color: var(--ink-700);
+  cursor: pointer;
+}
+
+.settings-card .check-block input {
+  margin-top: 2px;
+}
+
+.settings-card .check-block span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-card .check-block small {
+  font-size: 12px;
+  color: var(--ink-400);
+}
+
+/* ── audit ──────────────────────────────────────────────────── */
+.audit-when {
+  font-size: 12px;
+  color: var(--ink-400);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.audit-actor {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+}
+
+.audit-actor strong {
   font-size: 13px;
   font-weight: 600;
-  color: #5a5f7f;
+  color: var(--ink-900);
+  overflow-wrap: anywhere;
 }
 
-.field input,
-.field select {
-  border: 1px solid #e2e3ef;
-  border-radius: 12px;
-  padding: 10px 12px;
-  font: inherit;
-  color: #2d3156;
-  background: #fff;
+.audit-action {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  background: var(--surface-sunken);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-700);
+  white-space: nowrap;
 }
 
-.field input:focus,
-.field select:focus {
-  outline: 2px solid #c9cff0;
-  outline-offset: 1px;
+.audit-entity {
+  font-size: 13px;
+  color: var(--ink-700);
+}
+
+.audit-entity__id {
+  margin-left: 4px;
+  color: var(--ink-300);
+  font-variant-numeric: tabular-nums;
+}
+
+.audit-diff {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  max-width: 460px;
+}
+
+.audit-diff__chip {
+  display: inline-block;
+  max-width: 100%;
+  padding: 3px 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  background: var(--surface-sunken);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-600);
+  overflow-wrap: anywhere;
+}
+
+.audit-diff__chip--old {
+  border-color: var(--danger-line);
+  background: var(--danger-bg);
+  color: var(--danger-ink);
+}
+
+.audit-diff__chip--new {
+  border-color: var(--ok-line);
+  background: var(--ok-bg);
+  color: var(--ok-ink);
+}
+
+.audit-diff__sign {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  margin-right: 4px;
+}
+
+.audit-diff__reason {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ink-500);
+  overflow-wrap: anywhere;
+}
+
+/* Text filters share the row evenly; the two date pickers keep their width. */
+.filters.audit-filters input:not([type='date']) {
+  flex: 1 1 170px;
+  min-width: 140px;
+}
+
+.perm-yes {
+  color: var(--brand-600);
+  font-size: 15px;
+  vertical-align: middle;
+}
+
+@media (max-width: 720px) {
+  .audit-diff {
+    max-width: 100%;
+  }
+
+  .fee-assign__block,
+  .fee-installments li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .fee-installments__amount {
+    align-self: flex-end;
+  }
 }

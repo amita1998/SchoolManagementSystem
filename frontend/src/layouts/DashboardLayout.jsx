@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/shell/Sidebar.jsx';
 import TopBar from '../components/shell/TopBar.jsx';
-import RightPanel from '../components/shell/RightPanel.jsx';
 import { useDashboard } from '../hooks/useDashboard.js';
 import '../styles/shell.css';
 
@@ -34,9 +33,9 @@ function ErrorBlock({ message, onRetry }) {
 }
 
 /**
- * The three-zone shell from the design reference. The dashboard payload is fetched
- * here so the top bar and the right panel (calendar, reminders, notices) always show
- * the same data as the centre column — one request per screen.
+ * Two-zone shell: sidebar + centre column. The dashboard payload is fetched here so
+ * the top bar (date, notification bell) always shows the same data as the centre column —
+ * one request per screen. The old right-hand calendar/reminders/notices panel is gone.
  */
 export default function DashboardLayout({ role }) {
   const [childId, setChildId] = useState(null);
@@ -52,16 +51,16 @@ export default function DashboardLayout({ role }) {
           unreadNotifications={data?.shell?.unreadNotifications ?? 0}
           onNotificationsRead={reload}
         />
-        {status === 'error' ? (
-          <ErrorBlock message={error} onRetry={reload} />
-        ) : status === 'loading' ? (
-          <LoadingBlock />
-        ) : (
-          <Outlet context={{ data, reload, childId, setChildId }} />
-        )}
+        <div className="shell__content">
+          {status === 'error' ? (
+            <ErrorBlock message={error} onRetry={reload} />
+          ) : status === 'loading' ? (
+            <LoadingBlock />
+          ) : (
+            <Outlet context={{ data, reload, childId, setChildId }} />
+          )}
+        </div>
       </main>
-
-      <RightPanel shell={data?.shell} role={role} />
     </div>
   );
 }

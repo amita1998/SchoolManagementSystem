@@ -138,6 +138,17 @@ export const resetPassword = asyncHandler(async (req, res) => {
   res.json({ success: true, data: result });
 });
 
+export const resetGuardianPassword = asyncHandler(async (req, res) => {
+  const result = await students.resetGuardianPassword(
+    Number(req.params.id),
+    Number(req.params.parentId),
+    req.user,
+    req.ip,
+    req.headers['user-agent'],
+  );
+  res.json({ success: true, data: result });
+});
+
 export const addDocuments = asyncHandler(async (req, res) => {
   let types = [];
   try {

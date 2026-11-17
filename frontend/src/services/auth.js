@@ -1,7 +1,7 @@
 import api from './api.js';
 
-export async function login({ role, identifier, password, rememberMe }) {
-  const { data } = await api.post('/auth/login', { role, identifier, password, rememberMe });
+export async function login({ identifier, password, rememberMe }) {
+  const { data } = await api.post('/auth/login', { identifier, password, rememberMe });
   return data.data;
 }
 

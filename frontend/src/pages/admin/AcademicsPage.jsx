@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as admin from '../../services/admin.js';
 import { PageHeader, Notice } from '../../components/ui/PageHeader.jsx';
 import Field, { Select } from '../../components/forms/Field.jsx';
 
-const TABS = ['Classes', 'Subjects', 'Academic years'];
+const TABS = ['Classes', 'Sections', 'Subjects', 'Academic years'];
 
 export default function AcademicsPage() {
   const [tab, setTab] = useState('Classes');
@@ -14,7 +14,7 @@ export default function AcademicsPage() {
   const [newClass, setNewClass] = useState({ name: '', levelOrder: '', isPrePrimary: false });
   const [newSubject, setNewSubject] = useState({ name: '', code: '', isPrePrimary: false });
   const [newYear, setNewYear] = useState({ name: '', startDate: '', endDate: '' });
-  const [sectionDraft, setSectionDraft] = useState({});
+  const [newSection, setNewSection] = useState({ classId: '', name: '' });
   const [editingSubjectsFor, setEditingSubjectsFor] = useState(null);
   const [selectedSubjects, setSelectedSubjects] = useState([]);
 
@@ -40,11 +40,27 @@ export default function AcademicsPage() {
   const fail = (error) =>
     setNotice({ kind: 'error', text: error.response?.data?.error?.message || 'Something went wrong.' });
 
+  const sectionRows = useMemo(
+    () =>
+      classes.flatMap((klass) =>
+        klass.sections.map((section) => ({
+          ...section,
+          className: klass.name,
+          classId: klass.id,
+        })),
+      ),
+    [classes],
+  );
+
   async function openSubjects(classId) {
     try {
       const current = await admin.getClassSubjects(classId);
       setSelectedSubjects(current.map((subject) => subject.id));
       setEditingSubjectsFor(classId);
+      // The picker lives in the right-hand column; on a narrow screen bring it into view.
+      requestAnimationFrame(() => {
+        document.querySelector('.academics-side')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
     } catch (error) {
       fail(error);
     }
@@ -60,8 +76,10 @@ export default function AcademicsPage() {
     }
   }
 
+  const editingClass = classes.find((klass) => klass.id === editingSubjectsFor);
+
   return (
-    <div className="page">
+    <div className="page academics-page">
       <PageHeader
         title="Classes & subjects"
         subtitle="Academic structure: classes, sections, subjects and academic years."
@@ -72,7 +90,7 @@ export default function AcademicsPage() {
       <div className="tabs" role="tablist">
         {TABS.map((item) => (
           <button key={item} type="button" role="tab" aria-selected={tab === item}
-            className={`tab ${tab === item ? 'is-active' : ''}`} onClick={() => setTab(item)}>
+            className={tab === item ? 'is-active' : ''} onClick={() => setTab(item)}>
             {item}
           </button>
         ))}
@@ -80,133 +98,303 @@ export default function AcademicsPage() {
 
       {tab === 'Classes' && (
         <>
-          <section className="section-card">
-            <h3>Add a class</h3>
-            <div className="inline-form">
-              <Field label="Name" value={newClass.name} placeholder="Class 13"
-                onChange={(event) => setNewClass((c) => ({ ...c, name: event.target.value }))} />
-              <Field label="Level order" type="number" min="0" value={newClass.levelOrder}
-                onChange={(event) => setNewClass((c) => ({ ...c, levelOrder: event.target.value }))} />
-              <label className="check">
-                <input type="checkbox" checked={newClass.isPrePrimary}
-                  onChange={(event) => setNewClass((c) => ({ ...c, isPrePrimary: event.target.checked }))} />
-                <span>Pre-primary</span>
-              </label>
-              <button type="button" className="btn-primary" disabled={!newClass.name || newClass.levelOrder === ''}
-                onClick={async () => {
-                  try {
-                    await admin.createClass({
-                      name: newClass.name,
-                      levelOrder: Number(newClass.levelOrder),
-                      isPrePrimary: newClass.isPrePrimary,
-                    });
-                    setNewClass({ name: '', levelOrder: '', isPrePrimary: false });
-                    setNotice({ kind: 'success', text: 'Class created.' });
-                    load();
-                  } catch (error) {
-                    fail(error);
-                  }
-                }}>
-                Add class
-              </button>
-            </div>
-          </section>
+          <div className="academics-layout">
+            <section className="section-card">
+              <div className="section-card__head">
+                <h3>Classes</h3>
+                <span className="muted">{classes.length} defined</span>
+              </div>
 
-          {classes.map((klass) => (
-            <section className="section-card" key={klass.id}>
-              <header className="section-card__head">
-                <div>
-                  <h3>{klass.name}</h3>
-                  <p>
-                    {klass.sections.length} section(s) · {klass.student_count} students ·{' '}
-                    {klass.subject_count} subjects
-                  </p>
+              {classes.length === 0 ? (
+                <div className="empty-state">
+                  <span className="empty-state__icon"><i className="bi bi-building" aria-hidden="true" /></span>
+                  <strong>No classes yet</strong>
+                  <span>Add the first class in the panel beside this table.</span>
                 </div>
-                <button type="button" className="btn-ghost" onClick={() => openSubjects(klass.id)}>
-                  Edit subjects
-                </button>
-              </header>
-
-              {klass.sections.length === 0 ? (
-                <p className="table-empty">No sections yet.</p>
               ) : (
-                <ul className="file-list">
-                  {klass.sections.map((section) => (
-                    <li key={section.id}>
-                      <i className="bi bi-grid-3x3-gap" aria-hidden="true" />
-                      <strong>Section {section.name}</strong>
-                      <span className="muted">
-                        {section.students}/{section.capacity} students
-                      </span>
-                      <span className="muted">{section.class_teacher || 'no class teacher'}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="table-wrap">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Class</th>
+                        <th className="align-right">Level</th>
+                        <th className="align-right">Sections</th>
+                        <th className="align-right">Students</th>
+                        <th className="align-right">Subjects</th>
+                        <th className="col-actions align-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {classes.map((klass) => (
+                        <tr key={klass.id}>
+                          <td data-label="Class">
+                            <strong>{klass.name}</strong>
+                          </td>
+                          <td className="align-right num" data-label="Level">{klass.level_order}</td>
+                          <td className="align-right num" data-label="Sections">{klass.sections.length}</td>
+                          <td className="align-right num" data-label="Students">{klass.student_count}</td>
+                          <td className="align-right num" data-label="Subjects">{klass.subject_count}</td>
+                          <td className="align-right" data-label="Actions">
+                            <span className="row-actions">
+                              <button type="button" className="link-button"
+                                onClick={() => {
+                                  setNewSection({ classId: String(klass.id), name: '' });
+                                  setTab('Sections');
+                                }}>
+                                Open sections
+                              </button>
+                              <button type="button" className="btn-ghost btn--sm" onClick={() => openSubjects(klass.id)}>
+                                Edit subjects
+                              </button>
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
+            </section>
 
-              <div className="inline-form">
-                <Field label="New section" placeholder="D" value={sectionDraft[klass.id] || ''}
-                  onChange={(event) => setSectionDraft((c) => ({ ...c, [klass.id]: event.target.value }))} />
-                <button type="button" className="btn-ghost" disabled={!sectionDraft[klass.id]}
+            <section className="section-card academics-side">
+              {editingSubjectsFor !== null ? (
+                <>
+                  <div className="section-card__head">
+                    <h3>{editingClass?.name || 'Class'} subjects</h3>
+                    <span className="muted">{selectedSubjects.length} selected</span>
+                  </div>
+                  {subjects.length === 0 ? (
+                    <div className="empty-state">
+                      <span className="empty-state__icon"><i className="bi bi-journal" aria-hidden="true" /></span>
+                      <strong>No subjects defined</strong>
+                      <span>Create subjects first, then map them to this class.</span>
+                    </div>
+                  ) : (
+                    <div className="subject-grid">
+                      {subjects.map((subject) => (
+                        <label key={subject.id} className="check">
+                          <input
+                            type="checkbox"
+                            checked={selectedSubjects.includes(subject.id)}
+                            onChange={(event) => {
+                              setSelectedSubjects((current) =>
+                                event.target.checked
+                                  ? [...current, subject.id]
+                                  : current.filter((id) => id !== subject.id),
+                              );
+                            }}
+                          />
+                          <span>
+                            {subject.name} <span className="muted mono">{subject.code}</span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                  <div className="form-actions">
+                    <button type="button" className="btn-ghost" onClick={() => setEditingSubjectsFor(null)}>
+                      Cancel
+                    </button>
+                    <button type="button" className="btn-primary" onClick={saveClassSubjects}>
+                      Save subjects
+                    </button>
+                  </div>
+                </>
+              ) : (
+              <>
+              <div className="section-card__head">
+                <h3>Add a class</h3>
+                <span className="muted">Name and level</span>
+              </div>
+              <div className="stack">
+                <Field label="Name" name="className" value={newClass.name} placeholder="Class 13"
+                  onChange={(event) => setNewClass((c) => ({ ...c, name: event.target.value }))} />
+                <Field label="Level order" name="levelOrder" type="number" min="0" value={newClass.levelOrder}
+                  hint="Sorts the class in lists and registers."
+                  onChange={(event) => setNewClass((c) => ({ ...c, levelOrder: event.target.value }))} />
+                <label className="check">
+                  <input type="checkbox" checked={newClass.isPrePrimary}
+                    onChange={(event) => setNewClass((c) => ({ ...c, isPrePrimary: event.target.checked }))} />
+                  <span>Pre-primary</span>
+                </label>
+                <button type="button" className="btn-primary btn--block"
+                  disabled={!newClass.name || newClass.levelOrder === ''}
                   onClick={async () => {
                     try {
-                      await admin.createSection(klass.id, { name: sectionDraft[klass.id] });
-                      setSectionDraft((c) => ({ ...c, [klass.id]: '' }));
-                      setNotice({ kind: 'success', text: 'Section added.' });
+                      await admin.createClass({
+                        name: newClass.name,
+                        levelOrder: Number(newClass.levelOrder),
+                        isPrePrimary: newClass.isPrePrimary,
+                      });
+                      setNewClass({ name: '', levelOrder: '', isPrePrimary: false });
+                      setNotice({ kind: 'success', text: 'Class created.' });
                       load();
                     } catch (error) {
                       fail(error);
                     }
                   }}>
-                  Add section
+                  Add class
                 </button>
               </div>
-
-              {editingSubjectsFor === klass.id && (
-                <div className="subject-picker">
-                  <strong>Subjects for {klass.name}</strong>
-                  <div className="subject-picker__grid">
-                    {subjects.map((subject) => (
-                      <label key={subject.id} className="check">
-                        <input type="checkbox"
-                          checked={selectedSubjects.includes(subject.id)}
-                          onChange={(event) => {
-                            setSelectedSubjects((current) =>
-                              event.target.checked
-                                ? [...current, subject.id]
-                                : current.filter((id) => id !== subject.id),
-                            );
-                          }} />
-                        <span>{subject.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                  <div className="inline-form">
-                    <button type="button" className="btn-primary" onClick={saveClassSubjects}>Save</button>
-                    <button type="button" className="btn-ghost" onClick={() => setEditingSubjectsFor(null)}>Cancel</button>
-                  </div>
-                </div>
+              </>
               )}
             </section>
-          ))}
+          </div>
+
         </>
       )}
 
-      {tab === 'Subjects' && (
-        <>
+      {tab === 'Sections' && (
+        <div className="academics-layout">
           <section className="section-card">
-            <h3>Add a subject</h3>
-            <div className="inline-form">
-              <Field label="Name" value={newSubject.name} placeholder="Science"
+            <div className="section-card__head">
+              <h3>Sections</h3>
+              <span className="muted">{sectionRows.length} across {classes.length} classes</span>
+            </div>
+
+            {sectionRows.length === 0 ? (
+              <div className="empty-state">
+                <span className="empty-state__icon"><i className="bi bi-grid-3x3-gap" aria-hidden="true" /></span>
+                <strong>No sections yet</strong>
+                <span>A class needs at least one section before students can be placed.</span>
+              </div>
+            ) : (
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Class</th>
+                      <th>Section</th>
+                      <th className="align-right">Students</th>
+                      <th>Class teacher</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sectionRows.map((section) => (
+                      <tr key={section.id}>
+                        <td data-label="Class">{section.className}</td>
+                        <td data-label="Section"><strong>Section {section.name}</strong></td>
+                        <td className="align-right num" data-label="Students">
+                          {section.students}/{section.capacity}
+                        </td>
+                        <td data-label="Class teacher">
+                          {section.class_teacher || <span className="muted">No class teacher</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section className="section-card academics-side">
+            <div className="section-card__head">
+              <h3>Add a section</h3>
+              <span className="muted">New</span>
+            </div>
+            <div className="stack">
+              <Select label="Class" name="sectionClass" value={newSection.classId} placeholder="Select class"
+                onChange={(event) => setNewSection((c) => ({ ...c, classId: event.target.value }))}
+                options={classes.map((klass) => ({ value: klass.id, label: klass.name }))} />
+              <Field label="Section name" name="sectionName" value={newSection.name} placeholder="D"
+                hint="A letter or short code, e.g. A, B, D."
+                onChange={(event) => setNewSection((c) => ({ ...c, name: event.target.value }))} />
+              <button type="button" className="btn-primary btn--block"
+                disabled={!newSection.classId || !newSection.name}
+                onClick={async () => {
+                  try {
+                    await admin.createSection(newSection.classId, { name: newSection.name });
+                    setNewSection({ classId: newSection.classId, name: '' });
+                    setNotice({ kind: 'success', text: 'Section added.' });
+                    load();
+                  } catch (error) {
+                    fail(error);
+                  }
+                }}>
+                Add section
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {tab === 'Subjects' && (
+        <div className="academics-layout">
+          <section className="section-card">
+            <div className="section-card__head">
+              <h3>Subjects</h3>
+              <span className="muted">{subjects.length} defined</span>
+            </div>
+
+            {subjects.length === 0 ? (
+              <div className="empty-state">
+                <span className="empty-state__icon"><i className="bi bi-journal" aria-hidden="true" /></span>
+                <strong>No subjects yet</strong>
+                <span>Add a subject, then map it to classes from the Classes tab.</span>
+              </div>
+            ) : (
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Subject</th>
+                      <th>Code</th>
+                      <th className="align-right">Classes</th>
+                      <th className="align-right">Teachers</th>
+                      <th className="col-actions align-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {subjects.map((subject) => (
+                      <tr key={subject.id}>
+                        <td data-label="Subject"><strong>{subject.name}</strong></td>
+                        <td className="mono" data-label="Code">{subject.code}</td>
+                        <td className="align-right num" data-label="Classes">{subject.class_count}</td>
+                        <td className="align-right num" data-label="Teachers">{subject.teacher_count}</td>
+                        <td className="align-right" data-label="Actions">
+                          <span className="row-actions">
+                            <button type="button" className="link-button"
+                              onClick={async () => {
+                                if (!window.confirm(`Remove ${subject.name}?`)) return;
+                                try {
+                                  await admin.deleteSubject(subject.id);
+                                  setNotice({ kind: 'success', text: 'Subject removed.' });
+                                  load();
+                                } catch (error) {
+                                  fail(error);
+                                }
+                              }}>
+                              Remove
+                            </button>
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section className="section-card academics-side">
+            <div className="section-card__head">
+              <h3>Add a subject</h3>
+              <span className="muted">New</span>
+            </div>
+            <div className="stack">
+              <Field label="Name" name="subjectName" value={newSubject.name} placeholder="Science"
                 onChange={(event) => setNewSubject((c) => ({ ...c, name: event.target.value }))} />
-              <Field label="Code" value={newSubject.code} placeholder="SCI"
+              <Field label="Code" name="subjectCode" value={newSubject.code} placeholder="SCI" maxLength={12}
+                hint="Short code used on reports and timetables."
                 onChange={(event) => setNewSubject((c) => ({ ...c, code: event.target.value.toUpperCase() }))} />
               <label className="check">
                 <input type="checkbox" checked={newSubject.isPrePrimary}
                   onChange={(event) => setNewSubject((c) => ({ ...c, isPrePrimary: event.target.checked }))} />
                 <span>Pre-primary</span>
               </label>
-              <button type="button" className="btn-primary" disabled={!newSubject.name || !newSubject.code}
+              <button type="button" className="btn-primary btn--block"
+                disabled={!newSubject.name || !newSubject.code}
                 onClick={async () => {
                   try {
                     await admin.createSubject(newSubject);
@@ -221,56 +409,87 @@ export default function AcademicsPage() {
               </button>
             </div>
           </section>
-
-          <section className="section-card">
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr><th>Subject</th><th>Code</th><th>Classes</th><th>Teachers</th><th /></tr>
-                </thead>
-                <tbody>
-                  {subjects.map((subject) => (
-                    <tr key={subject.id}>
-                      <td>{subject.name}</td>
-                      <td className="mono">{subject.code}</td>
-                      <td>{subject.class_count}</td>
-                      <td>{subject.teacher_count}</td>
-                      <td className="align-right">
-                        <button type="button" className="link-button"
-                          onClick={async () => {
-                            if (!window.confirm(`Remove ${subject.name}?`)) return;
-                            try {
-                              await admin.deleteSubject(subject.id);
-                              setNotice({ kind: 'success', text: 'Subject removed.' });
-                              load();
-                            } catch (error) {
-                              fail(error);
-                            }
-                          }}>
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </>
+        </div>
       )}
 
       {tab === 'Academic years' && (
-        <>
+        <div className="academics-layout">
           <section className="section-card">
-            <h3>Add an academic year</h3>
-            <div className="inline-form">
-              <Field label="Name" placeholder="2027-2028" value={newYear.name}
+            <div className="section-card__head">
+              <h3>Academic years</h3>
+              <span className="muted">{years.length} defined</span>
+            </div>
+
+            {years.length === 0 ? (
+              <div className="empty-state">
+                <span className="empty-state__icon"><i className="bi bi-calendar3" aria-hidden="true" /></span>
+                <strong>No academic year yet</strong>
+                <span>Admissions and placements need a current academic year.</span>
+              </div>
+            ) : (
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Year</th>
+                      <th>Start</th>
+                      <th>End</th>
+                      <th>Status</th>
+                      <th className="col-actions align-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {years.map((year) => (
+                      <tr key={year.id}>
+                        <td data-label="Year"><strong>{year.name}</strong></td>
+                        <td data-label="Start">{year.start_label}</td>
+                        <td data-label="End">{year.end_label}</td>
+                        <td data-label="Status">
+                          {year.is_current ? (
+                            <span className="status-badge status-badge--mint">current</span>
+                          ) : (
+                            <span className="muted">Closed</span>
+                          )}
+                        </td>
+                        <td className="align-right" data-label="Actions">
+                          {!year.is_current && (
+                            <span className="row-actions">
+                              <button type="button" className="link-button"
+                                onClick={async () => {
+                                  try {
+                                    await admin.setCurrentYear(year.id);
+                                    setNotice({ kind: 'success', text: `${year.name} is now the current year.` });
+                                    load();
+                                  } catch (error) {
+                                    fail(error);
+                                  }
+                                }}>
+                                Make current
+                              </button>
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section className="section-card academics-side">
+            <div className="section-card__head">
+              <h3>Add an academic year</h3>
+              <span className="muted">New</span>
+            </div>
+            <div className="stack">
+              <Field label="Name" name="yearName" placeholder="2027-2028" value={newYear.name}
                 onChange={(event) => setNewYear((c) => ({ ...c, name: event.target.value }))} />
-              <Field label="Start" type="date" value={newYear.startDate}
+              <Field label="Start" name="yearStart" type="date" value={newYear.startDate}
                 onChange={(event) => setNewYear((c) => ({ ...c, startDate: event.target.value }))} />
-              <Field label="End" type="date" value={newYear.endDate}
+              <Field label="End" name="yearEnd" type="date" value={newYear.endDate}
                 onChange={(event) => setNewYear((c) => ({ ...c, endDate: event.target.value }))} />
-              <button type="button" className="btn-primary"
+              <button type="button" className="btn-primary btn--block"
                 disabled={!newYear.name || !newYear.startDate || !newYear.endDate}
                 onClick={async () => {
                   try {
@@ -286,35 +505,7 @@ export default function AcademicsPage() {
               </button>
             </div>
           </section>
-
-          <section className="section-card">
-            <ul className="file-list">
-              {years.map((year) => (
-                <li key={year.id}>
-                  <i className="bi bi-calendar3" aria-hidden="true" />
-                  <strong>{year.name}</strong>
-                  <span className="muted">{year.start_label} → {year.end_label}</span>
-                  {year.is_current ? (
-                    <span className="status-badge status-badge--mint">current</span>
-                  ) : (
-                    <button type="button" className="link-button"
-                      onClick={async () => {
-                        try {
-                          await admin.setCurrentYear(year.id);
-                          setNotice({ kind: 'success', text: `${year.name} is now the current year.` });
-                          load();
-                        } catch (error) {
-                          fail(error);
-                        }
-                      }}>
-                      Make current
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-        </>
+        </div>
       )}
     </div>
   );

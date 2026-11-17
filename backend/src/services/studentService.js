@@ -180,7 +180,42 @@ export async function createStudent({ payload, files = [], documentTypes = [], a
   const sharedPassword = temporaryPassword();
   const sharedHash = await bcrypt.hash(sharedPassword, config.auth.bcryptRounds);
 
+  // Duplicate guard: the same child admitted twice (double click, or a re-typed form).
+  // The database enforces this too (students_identity_unique); this check exists so the
+  // message can name the admission already on file.
+  const duplicate = await query(
+    `SELECT admission_id FROM students
+      WHERE deleted_at IS NULL
+        AND (
+          (lower(btrim(first_name)) = lower(btrim($1))
+           AND lower(btrim(last_name)) = lower(btrim($2))
+           AND date_of_birth = $3)
+          OR EXISTS (
+            SELECT 1 FROM student_parents sp JOIN parents p ON p.id = sp.parent_id
+             WHERE sp.student_id = students.id AND p.mobile = $4
+               AND lower(btrim(students.first_name)) = lower(btrim($1))
+               AND lower(btrim(students.last_name)) = lower(btrim($2))
+          )
+        )
+      LIMIT 1`,
+    [
+      payload.firstName,
+      payload.lastName,
+      payload.dateOfBirth,
+      (payload.parents || [])[0]?.mobile ?? '',
+    ],
+  );
+  if (duplicate.rows[0]) {
+    throw conflict(
+      `This student is already admitted as ${duplicate.rows[0].admission_id}. Edit that record instead of adding a new one.`,
+      'STUDENT_EXISTS',
+    );
+  }
+
   const writtenFiles = [];
+  // Guardian logins created by this admission (an already-existing family account keeps its
+  // old password, so it must not be advertised with the new shared one).
+  const guardianLogins = [];
   try {
     const result = await withTransaction(async (client) => {
       // 1. Student row — admission_id comes from the database sequence, never the client.
@@ -245,6 +280,10 @@ export async function createStudent({ payload, files = [], documentTypes = [], a
               parentId,
               user.rows[0].id,
             ]);
+            guardianLogins.push({
+              name: parent.fullName,
+              username: parent.email || parent.mobile,
+            });
           }
         } else {
           const created = await client.query(
@@ -269,6 +308,10 @@ export async function createStudent({ payload, files = [], documentTypes = [], a
             [parent.email || parent.mobile, parent.email ?? null, sharedHash],
           );
           await client.query('UPDATE parents SET user_id = $2 WHERE id = $1', [parentId, user.rows[0].id]);
+          guardianLogins.push({
+            name: parent.fullName,
+            username: parent.email || parent.mobile,
+          });
         }
 
         await client.query(
@@ -329,10 +372,18 @@ export async function createStudent({ payload, files = [], documentTypes = [], a
     return {
       student: await getStudent(result.studentId),
       account: result.login,
+      guardians: guardianLogins,
     };
   } catch (error) {
     await removeUploads(writtenFiles);
     if (error.code === '23505') {
+      // The unique index is the race-proof backstop for two submits of the same child.
+      if (error.constraint === 'students_identity_unique') {
+        throw conflict(
+          'This student is already admitted (same name and date of birth). Edit that record instead of adding a new one.',
+          'STUDENT_EXISTS',
+        );
+      }
       throw conflict('That username or guardian already exists.', 'DUPLICATE_ACCOUNT');
     }
     throw error;
@@ -343,28 +394,148 @@ export async function createStudent({ payload, files = [], documentTypes = [], a
 // Update / status / delete
 // ---------------------------------------------------------------------------
 
+/**
+ * Partial update: student columns, current-year placement (class / section / roll) and
+ * the contact block of linked guardians. One transaction, one audit row with old + new
+ * values. A guardian mobile that doubles as the family login is renamed with it, so the
+ * parent does not lose access after the number is corrected.
+ */
 export async function updateStudent(studentId, payload, actor, ip, userAgent) {
-  const before = await query(
-    'SELECT first_name, last_name, gender, date_of_birth, blood_group, previous_school FROM students WHERE id = $1 AND deleted_at IS NULL',
-    [studentId],
-  );
-  if (!before.rows[0]) throw notFound('Student not found.');
+  const before = await getStudent(studentId);
 
-  const { rows } = await query(
-    `UPDATE students SET first_name = $2, last_name = $3, gender = $4, date_of_birth = $5,
-       blood_group = $6, previous_school = $7
-     WHERE id = $1 AND deleted_at IS NULL
-     RETURNING id`,
-    [
-      studentId,
-      payload.firstName,
-      payload.lastName,
-      payload.gender,
-      payload.dateOfBirth,
-      payload.bloodGroup ?? null,
-      payload.previousSchool ?? null,
-    ],
-  );
+  try {
+  await withTransaction(async (client) => {
+    const current = await client.query(
+      `SELECT id, first_name, last_name, gender, date_of_birth, blood_group, previous_school
+         FROM students WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
+      [studentId],
+    );
+    if (!current.rows[0]) throw notFound('Student not found.');
+    const row = current.rows[0];
+
+    await client.query(
+      `UPDATE students
+          SET first_name = $2, last_name = $3, gender = $4, date_of_birth = $5,
+              blood_group = $6, previous_school = $7
+        WHERE id = $1`,
+      [
+        studentId,
+        payload.firstName ?? row.first_name,
+        payload.lastName ?? row.last_name,
+        payload.gender ?? row.gender,
+        payload.dateOfBirth ?? row.date_of_birth,
+        payload.bloodGroup === undefined ? row.blood_group : payload.bloodGroup || null,
+        payload.previousSchool === undefined ? row.previous_school : payload.previousSchool || null,
+      ],
+    );
+
+    const movingPlacement =
+      payload.classId !== undefined || payload.sectionId !== undefined || payload.rollNo !== undefined;
+
+    if (movingPlacement) {
+      const year = await currentYear(client);
+      if (!year) throw conflict('No current academic year is configured.', 'NO_CURRENT_YEAR');
+
+      const existing = await client.query(
+        `SELECT id, class_id, section_id, roll_no FROM enrollments
+          WHERE student_id = $1 AND academic_year_id = $2 FOR UPDATE`,
+        [studentId, year.id],
+      );
+      const enrollment = existing.rows[0] || null;
+
+      const classId = payload.classId ?? enrollment?.class_id ?? null;
+      const sectionId = payload.sectionId ?? enrollment?.section_id ?? null;
+      const rollNo = payload.rollNo !== undefined ? payload.rollNo : enrollment?.roll_no ?? null;
+
+      if (sectionId) {
+        const section = await client.query('SELECT class_id FROM sections WHERE id = $1 AND deleted_at IS NULL', [
+          sectionId,
+        ]);
+        if (!section.rows[0]) throw notFound('That section does not exist.');
+        if (classId && section.rows[0].class_id !== Number(classId)) {
+          throw conflict('That section belongs to another class.', 'SECTION_CLASS_MISMATCH');
+        }
+      }
+
+      if (enrollment) {
+        await client.query('UPDATE enrollments SET class_id = $2, section_id = $3, roll_no = $4 WHERE id = $1', [
+          enrollment.id,
+          classId ?? enrollment.class_id,
+          sectionId ?? enrollment.section_id,
+          rollNo,
+        ]);
+      } else if (classId && sectionId) {
+        await client.query(
+          `INSERT INTO enrollments (student_id, academic_year_id, class_id, section_id, roll_no, status)
+           VALUES ($1, $2, $3, $4, $5, 'active')`,
+          [studentId, year.id, classId, sectionId, rollNo],
+        );
+      } else {
+        throw conflict('This student has no enrollment in the current academic year.', 'NO_ENROLLMENT');
+      }
+    }
+
+    for (const guardian of payload.guardians || []) {
+      const linked = await client.query(
+        `SELECT p.id, p.mobile, p.email, p.occupation, p.address_line, p.city, p.state, p.pincode, p.user_id
+           FROM student_parents sp JOIN parents p ON p.id = sp.parent_id
+          WHERE sp.student_id = $1 AND p.id = $2`,
+        [studentId, guardian.id],
+      );
+      const parent = linked.rows[0];
+      if (!parent) throw notFound('That guardian is not linked to this student.');
+
+      const mobile = guardian.mobile ?? parent.mobile;
+      if (mobile !== parent.mobile) {
+        const clash = await client.query(
+          'SELECT id FROM parents WHERE mobile = $1 AND id <> $2 AND deleted_at IS NULL',
+          [mobile, parent.id],
+        );
+        if (clash.rowCount) throw conflict('Another guardian already uses that mobile number.', 'MOBILE_IN_USE');
+      }
+
+      await client.query(
+        `UPDATE parents
+            SET mobile = $2, email = $3, occupation = $4, address_line = $5,
+                city = $6, state = $7, pincode = $8
+          WHERE id = $1`,
+        [
+          parent.id,
+          mobile,
+          guardian.email === undefined ? parent.email : guardian.email || null,
+          guardian.occupation === undefined ? parent.occupation : guardian.occupation || null,
+          guardian.addressLine === undefined ? parent.address_line : guardian.addressLine || null,
+          guardian.city === undefined ? parent.city : guardian.city || null,
+          guardian.state === undefined ? parent.state : guardian.state || null,
+          guardian.pincode === undefined ? parent.pincode : guardian.pincode || null,
+        ],
+      );
+
+      // The family login is the guardian's email when there is one, otherwise the mobile.
+      // Both the username and users.email follow the contact details, so signing in with the
+      // new address works immediately.
+      const nextEmail = guardian.email === undefined ? parent.email : guardian.email || null;
+      if (parent.user_id) {
+        const oldIdentities = [parent.email, parent.mobile].filter(Boolean).map((v) => v.toLowerCase());
+        if (nextEmail && oldIdentities.includes(String(parent.email || '').toLowerCase())) {
+          await client.query('UPDATE users SET username = $2 WHERE id = $1', [parent.user_id, nextEmail]);
+        } else if (mobile !== parent.mobile && oldIdentities.includes(String(parent.mobile).toLowerCase())) {
+          await client.query('UPDATE users SET username = $2 WHERE id = $1', [parent.user_id, mobile]);
+        }
+        if (nextEmail !== parent.email) {
+          await client.query('UPDATE users SET email = $2 WHERE id = $1', [parent.user_id, nextEmail]);
+        }
+      }
+    }
+  });
+  } catch (error) {
+    if (error.code === '23505') {
+      throw conflict('That email is already used by another login.', 'EMAIL_IN_USE');
+    }
+    throw error;
+  }
+
+  const after = await getStudent(studentId);
 
   await audit({
     actorUserId: actor?.id,
@@ -372,13 +543,24 @@ export async function updateStudent(studentId, payload, actor, ip, userAgent) {
     action: 'student.updated',
     entityType: 'students',
     entityId: studentId,
-    oldValues: before.rows[0],
+    oldValues: {
+      firstName: before.firstName,
+      lastName: before.lastName,
+      gender: before.gender,
+      dateOfBirth: before.dateOfBirth,
+      bloodGroup: before.bloodGroup,
+      previousSchool: before.previousSchool,
+      classId: before.classId,
+      sectionId: before.sectionId,
+      rollNo: before.rollNo,
+      guardians: before.parents.map((parent) => ({ id: parent.id, mobile: parent.mobile })),
+    },
     newValues: payload,
     ip,
     userAgent,
   });
 
-  return rows[0] ? getStudent(studentId) : null;
+  return after;
 }
 
 export async function changeStatus(studentId, { status, effectiveDate, remarks }, actor, ip, userAgent) {
@@ -428,6 +610,56 @@ export async function changeStatus(studentId, { status, effectiveDate, remarks }
   // Read back after COMMIT: a query through the pool inside the transaction
   // would return the pre-update row.
   return getStudent(studentId);
+}
+
+/**
+ * Issue a fresh temporary password for a guardian's family login. The login name is the
+ * guardian's email (or mobile when there is no email) — the same identity the admission slip
+ * prints — so this is how the school recovers a parent who lost their password.
+ */
+export async function resetGuardianPassword(studentId, parentId, actor, ip, userAgent) {
+  const linked = await query(
+    `SELECT p.id, p.full_name, p.email, p.mobile, p.user_id
+       FROM student_parents sp JOIN parents p ON p.id = sp.parent_id
+      WHERE sp.student_id = $1 AND p.id = $2 AND p.deleted_at IS NULL`,
+    [studentId, parentId],
+  );
+  const parent = linked.rows[0];
+  if (!parent) throw notFound('That guardian is not linked to this student.');
+  if (!parent.user_id) throw conflict('This guardian has no login account.', 'NO_ACCOUNT');
+
+  const password = temporaryPassword();
+  const hash = await bcrypt.hash(password, config.auth.bcryptRounds);
+
+  await withTransaction(async (client) => {
+    await client.query(
+      `UPDATE users SET password_hash = $2, must_change_password = TRUE, is_active = TRUE,
+         failed_login_attempts = 0, locked_until = NULL WHERE id = $1`,
+      [parent.user_id, hash],
+    );
+    await client.query(
+      `UPDATE refresh_tokens SET revoked_at = now(), revoked_reason = 'password_reset'
+        WHERE user_id = $1 AND revoked_at IS NULL`,
+      [parent.user_id],
+    );
+  });
+
+  await audit({
+    actorUserId: actor?.id,
+    actorRole: actor?.role,
+    action: 'parent.password_reset',
+    entityType: 'parents',
+    entityId: parent.id,
+    newValues: { studentId, login: parent.email || parent.mobile },
+    ip,
+    userAgent,
+  });
+
+  return {
+    guardian: parent.full_name,
+    username: parent.email || parent.mobile,
+    temporaryPassword: password,
+  };
 }
 
 export async function softDeleteStudent(studentId, actor, ip, userAgent) {

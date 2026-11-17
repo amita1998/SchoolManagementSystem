@@ -19,6 +19,7 @@ export default function ComingSoon() {
       <span className="coming-soon__icon">
         <i className={`bi ${match?.icon || 'bi-tools'}`} aria-hidden="true" />
       </span>
+      <span className="coming-soon__eyebrow">Not built yet</span>
       <h2>{match?.label || 'This section'} is not built yet</h2>
       <p>
         {match?.step
@@ -26,7 +27,8 @@ export default function ComingSoon() {
           : 'This module is scheduled for a later step.'}{' '}
         The dashboard already reads live data; the module screens arrive with their own step.
       </p>
-      <a className="coming-soon__back" href={`/${user?.role || ''}`}>
+      <a className="btn-ghost coming-soon__back" href={`/${user?.role || ''}`}>
+        <i className="bi bi-arrow-left" aria-hidden="true" />
         Back to dashboard
       </a>
     </div>

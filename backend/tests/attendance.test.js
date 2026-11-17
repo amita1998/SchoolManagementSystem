@@ -9,6 +9,13 @@ let server;
 let base;
 let ids;
 
+// The server decides "today" in the school timezone (Asia/Kolkata). A UTC date is the
+// previous day between 00:00 and 05:30 IST, which would make today's sheet look like a past
+// day (409 ATTENDANCE_LOCKED instead of the expected outcome).
+function todayIso() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+}
+
 async function call(method, path, { token, body } = {}) {
   const headers = {};
   if (token) headers.authorization = `Bearer ${token}`;
@@ -104,7 +111,7 @@ describe('attendance marking', () => {
       token,
       body: {
         sectionId: ids.sectionA,
-        date: new Date().toISOString().slice(0, 10),
+        date: todayIso(),
         entries: [{ studentId: ids.studentId, status: 'absent' }],
       },
     });
@@ -132,7 +139,7 @@ describe('attendance marking', () => {
       token: admin,
       body: {
         sectionId: ids.sectionA,
-        date: new Date().toISOString().slice(0, 10),
+        date: todayIso(),
         entries: [{ studentId: ids.studentId, status: 'present' }],
       },
     });
@@ -145,7 +152,7 @@ describe('attendance marking', () => {
       token: teacher,
       body: {
         sectionId: ids.sectionA,
-        date: new Date().toISOString().slice(0, 10),
+        date: todayIso(),
         entries: [{ studentId: ids.otherStudentId, status: 'present' }],
       },
     });
@@ -160,7 +167,7 @@ describe('corrections', () => {
 
   it('lets the class teacher request a correction', async () => {
     const teacher = await login('teacher', ACCOUNTS.teacher.username);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const { rows } = await pool.query(
       'SELECT id FROM attendance WHERE student_id = $1 AND attendance_date = $2',
       [ids.studentId, today],

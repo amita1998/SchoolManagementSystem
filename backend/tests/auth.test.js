@@ -114,6 +114,36 @@ describe('POST /api/auth/login', () => {
     assert.equal(res.body.error.code, 'ROLE_MISMATCH');
   });
 
+  it('signs in with credentials only and reports the account\'s own role', async () => {
+    for (const account of Object.values(ACCOUNTS)) {
+      const res = await call('POST', '/api/auth/login', {
+        body: { identifier: account.username, password: TEST_PASSWORD, rememberMe: false },
+      });
+      assert.equal(res.status, 200, `${account.username} should sign in without a role`);
+      assert.equal(res.body.data.user.role, account.role);
+      assert.equal(res.body.data.user.username, account.username);
+      assert.ok(res.body.data.accessToken);
+      assert.ok(res.refresh, 'a refresh cookie is still issued');
+    }
+  });
+
+  it('signs in without a role by email as well as by username', async () => {
+    const account = ACCOUNTS.parent;
+    const res = await call('POST', '/api/auth/login', {
+      body: { identifier: account.email, password: TEST_PASSWORD },
+    });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.data.user.username, account.username);
+  });
+
+  it('rejects a wrong password without a role, without leaking the account', async () => {
+    const res = await call('POST', '/api/auth/login', {
+      body: { identifier: ACCOUNTS.student.username, password: 'wrong-password' },
+    });
+    assert.equal(res.status, 401);
+    assert.equal(res.body.error.code, 'INVALID_CREDENTIALS');
+  });
+
   it('validates the request body field by field', async () => {
     const res = await call('POST', '/api/auth/login', { body: { role: 'nope', identifier: '' } });
     assert.equal(res.status, 400);

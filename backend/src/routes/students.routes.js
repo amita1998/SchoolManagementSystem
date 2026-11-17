@@ -26,6 +26,7 @@ router.get('/:id', students.detail);
 router.put('/:id', requirePermission(PERMISSIONS.STUDENT_MANAGE), students.update);
 router.post('/:id/status', requirePermission(PERMISSIONS.STUDENT_MANAGE), students.changeStatus);
 router.post('/:id/reset-password', requirePermission(PERMISSIONS.STUDENT_MANAGE), students.resetPassword);
+router.post('/:id/guardians/:parentId/reset-password', requirePermission(PERMISSIONS.STUDENT_MANAGE), students.resetGuardianPassword);
 router.post('/:id/documents', requirePermission(PERMISSIONS.STUDENT_MANAGE), files(), students.addDocuments);
 router.delete('/:id', requirePermission(PERMISSIONS.STUDENT_MANAGE), students.remove);
 

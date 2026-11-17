@@ -7,6 +7,15 @@ import QuickActions from '../../components/ui/QuickActions.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import { greeting } from '../../utils/greeting.js';
 
+/** 12px muted context line for a section-card head. */
+function meta(text) {
+  return <span className="muted">{text}</span>;
+}
+
+function count(total, word) {
+  return `${total} ${word}${total === 1 ? '' : 's'}`;
+}
+
 export default function TeacherDashboard() {
   const { data } = useOutletContext();
 
@@ -31,6 +40,11 @@ export default function TeacherDashboard() {
         name={data.shell.user.name}
         subtitle="Your classes, today's timetable and everything waiting on you."
         meta={data.today?.label}
+        facts={
+          schedule.length
+            ? [{ value: schedule.length, label: `${schedule.length === 1 ? 'period' : 'periods'} today` }]
+            : []
+        }
         cta={
           data.quickActions.length
             ? { label: data.quickActions[0].label, to: data.quickActions[0].to }
@@ -46,28 +60,58 @@ export default function TeacherDashboard() {
 
       <QuickActions actions={data.quickActions} />
 
-      <div className="dash__grid">
-        <SectionCard title="Today's classes" subtitle="From your weekly timetable">
-          <DataTable
-            columns={[
-              { key: 'start_time', label: 'Time', render: (row) => `${row.start_time}–${row.end_time}` },
-              { key: 'class_name', label: 'Class', render: (row) => `${row.class_name} ${row.section_name}` },
-              { key: 'subject_name', label: 'Subject' },
-            ]}
-            rows={schedule}
-            rowKey="period_no"
-            empty="No periods scheduled for today."
-          />
+      <div className="dash__grid dash__grid--wide">
+        <SectionCard
+          title="Today's classes"
+          subtitle={meta(
+            schedule.length ? `${count(schedule.length, 'period')} on your timetable` : 'Nothing scheduled',
+          )}
+        >
+          {schedule.length === 0 ? (
+            <EmptyState
+              icon="bi-calendar2-week"
+              title="No periods scheduled for today"
+              text="Your weekly timetable has no class on this weekday."
+            />
+          ) : (
+            <DataTable
+              columns={[
+                {
+                  key: 'start_time',
+                  label: 'Time',
+                  render: (row) => `${row.start_time}–${row.end_time}`,
+                },
+                {
+                  key: 'class_name',
+                  label: 'Class',
+                  render: (row) => `${row.class_name} ${row.section_name}`,
+                },
+                { key: 'subject_name', label: 'Subject' },
+              ]}
+              rows={schedule}
+              rowKey="period_no"
+            />
+          )}
         </SectionCard>
 
-        <SectionCard title="My classes" action={{ label: 'Open', to: '/teacher/classes' }}>
+        <SectionCard
+          title="My classes"
+          subtitle={meta(`${count(data.classes.length, 'class')} assigned`)}
+          action={{ label: 'Open', to: '/teacher/classes' }}
+        >
           {data.classes.length === 0 ? (
-            <EmptyState icon="bi-grid-3x3-gap" title="No classes assigned" text="Ask the admin to assign subjects." />
+            <EmptyState
+              icon="bi-grid-3x3-gap"
+              title="No classes assigned"
+              text="Ask the admin office to assign subjects to your profile."
+            />
           ) : (
-            <ul className="class-list">
+            <ul className="people-list">
               {data.classes.map((row) => (
                 <li key={row.class_id}>
-                  <span className="class-list__badge">{row.class_name.replace('Class ', '')}</span>
+                  <span className="people-list__avatar" aria-hidden="true">
+                    {row.class_name.replace('Class ', '')}
+                  </span>
                   <div>
                     <strong>{row.class_name}</strong>
                     <span>
@@ -83,18 +127,22 @@ export default function TeacherDashboard() {
       </div>
 
       <div className="dash__grid">
-        <SectionCard title="Upcoming examinations">
+        <SectionCard title="Upcoming examinations" subtitle={meta('For the classes you teach')}>
           {data.upcomingExams.length === 0 ? (
-            <EmptyState icon="bi-journal-text" title="No exams scheduled" />
+            <EmptyState
+              icon="bi-journal-text"
+              title="No exams scheduled"
+              text="Examination dates for your classes will appear here."
+            />
           ) : (
-            <ul className="event-list">
+            <ul className="history-list">
               {data.upcomingExams.map((exam, index) => (
                 <li key={`${exam.exam_name}-${index}`}>
-                  <span className="event-list__date">{exam.date_label}</span>
+                  <span className="history-list__dot" aria-hidden="true" />
                   <div>
                     <strong>{exam.exam_name}</strong>
                     <span>
-                      {exam.subject_name} · {exam.class_name}
+                      {[exam.subject_name, exam.class_name, exam.date_label].filter(Boolean).join(' · ')}
                     </span>
                   </div>
                 </li>
@@ -103,17 +151,21 @@ export default function TeacherDashboard() {
           )}
         </SectionCard>
 
-        <SectionCard title="Upcoming events">
+        <SectionCard title="Upcoming events" subtitle={meta('School calendar')}>
           {data.upcomingEvents.length === 0 ? (
             <EmptyState icon="bi-calendar-event" title="No upcoming events" />
           ) : (
-            <ul className="event-list">
+            <ul className="history-list">
               {data.upcomingEvents.map((event) => (
                 <li key={event.id}>
-                  <span className="event-list__date">{event.date_label}</span>
+                  <span className="history-list__dot" aria-hidden="true" />
                   <div>
                     <strong>{event.title}</strong>
-                    <span>{[event.category, event.location].filter(Boolean).join(' · ')}</span>
+                    <span>
+                      {[event.date_label, event.category, event.start_time, event.location]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </span>
                   </div>
                 </li>
               ))}

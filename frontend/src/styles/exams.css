@@ -1,26 +1,616 @@
-/* Examination screens (Step 6). */
+/* ═════════════════════════════════════════════════════════════
+   Examinations — page-scoped styles for AdminExamsPage and the
+   marks-entry surfaces. Shared primitives (.section-card, .data-table,
+   .btn-*, .form-field, .status-badge, .summary-chip, .notice,
+   .empty-state) live in ui.css and are never redefined here.
+   ═════════════════════════════════════════════════════════════ */
 
-.marks-input {
-  width: 88px;
-  padding: 7px 10px;
-  border: 1px solid var(--vvs-border);
-  border-radius: 9px;
-  font-family: inherit;
-  font-size: 0.84rem;
+/* ─────────────── new exam card ─────────────── */
+.exams-page .exam-create__grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.exams-page .exam-create__actions {
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
+.exams-page .exam-create__hint {
+  margin-right: auto;
+}
+
+/* ─────────────── exam card ─────────────── */
+.exams-page .exam-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.exam-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.exam-card__identity {
+  min-width: 0;
+}
+
+.exam-card__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.exam-card__title h3 {
+  font-size: 16px;
+  font-weight: 660;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.exam-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--ink-500);
+}
+
+.exam-card__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.exam-card__meta i {
+  color: var(--ink-300);
+  font-size: 12.5px;
+}
+
+.exam-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ─────────────── progress ─────────────── */
+.exam-card__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-sunken);
+}
+
+.exam-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 560px;
+}
+
+.exam-progress__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+}
+
+.exam-progress__value {
+  font-size: 12.5px;
+  font-weight: 660;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-700);
+  font-variant-numeric: tabular-nums;
+}
+
+.exam-progress__track {
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: #edf0f8;
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.exam-progress__fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: var(--brand-600);
+  transition: width 0.35s ease;
+}
+
+.exam-progress__fill.is-complete {
+  background: var(--ok-ink);
+}
+
+.exam-progress__fill.is-partial {
+  background: var(--brand-500);
+}
+
+.exam-progress__fill.is-empty {
+  background: var(--ink-200);
+}
+
+.exam-progress__foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--ink-400);
+  font-variant-numeric: tabular-nums;
+}
+
+.exam-card__gate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-500);
+}
+
+.exam-card__gate i {
+  font-size: 13px;
+  flex: 0 0 auto;
+}
+
+.exam-card__gate.is-blocked {
+  color: var(--warn-ink);
+}
+
+.exam-card__gate.is-ready {
+  color: var(--ok-ink);
+}
+
+.exam-card__gate.is-published {
+  color: var(--info-ink);
+}
+
+/* ─────────────── expanded detail ─────────────── */
+.exam-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.exam-detail__loading {
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.exam-detail__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.exam-detail__head h4 {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+}
+
+.exam-detail__count {
+  font-size: 12px;
+  color: var(--ink-400);
+  font-variant-numeric: tabular-nums;
+}
+
+/* schedules table */
+.exams-page .exam-schedules {
+  overflow-x: auto;
+}
+
+.exams-page .exam-schedules .data-table {
+  min-width: 960px;
+}
+
+.exams-page .exam-schedules .data-table th:nth-child(5),
+.exams-page .exam-schedules .data-table td:nth-child(5) {
   text-align: right;
+}
+
+.exams-page .exam-schedules .data-table td:nth-child(1),
+.exams-page .exam-schedules .data-table td:nth-child(4) {
+  white-space: nowrap;
+}
+
+.exam-subject-code {
+  margin-left: 6px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: var(--ink-300);
+}
+
+.exam-paper-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 128px;
+}
+
+.exam-paper-progress__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-600);
+  font-variant-numeric: tabular-nums;
+}
+
+.exam-paper-progress__meta .status-badge {
+  height: 19px;
+  padding: 0 7px;
+  font-size: 10.5px;
+}
+
+.exam-paper-progress__track {
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: #edf0f8;
+  overflow: hidden;
+}
+
+.exam-paper-progress__fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: var(--brand-500);
+}
+
+.exam-paper-progress__fill.is-complete {
+  background: var(--ok-ink);
+}
+
+.exams-page .link-button.exam-remove {
+  color: var(--danger-ink);
+}
+
+.exams-page .link-button.exam-remove:hover {
+  color: #84201f;
+}
+
+/* ─────────────── add-paper form ─────────────── */
+.exam-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface-sunken);
+}
+
+.exam-form__fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.exam-form__submit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.exam-form__submit .field-hint {
+  margin: 0;
+}
+
+/* ─────────────── marks panel ─────────────── */
+.exam-marks {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  overflow: hidden;
+  box-shadow: var(--shadow-1);
+}
+
+.exam-marks__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-sunken);
+}
+
+.exam-marks__title {
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--ink-900);
+  letter-spacing: -0.005em;
+}
+
+.exam-marks__sub {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--ink-500);
+  font-variant-numeric: tabular-nums;
+}
+
+.exam-marks__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.exam-marks__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.exam-marks__chips {
+  gap: 6px;
+}
+
+.exam-marks__chips .summary-chip {
+  padding: 5px 10px;
+  font-size: 11.5px;
+}
+
+.exam-marks__chips .summary-chip strong {
+  font-size: 12.5px;
+}
+
+.exam-marks__chips .exam-chip--submitted {
+  background: var(--ok-bg);
+  border-color: var(--ok-line);
+  color: var(--ok-ink);
+}
+
+.exam-marks__chips .exam-chip--submitted strong {
+  color: var(--ok-ink);
+}
+
+.exam-marks__chips .exam-chip--draft {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+  color: var(--warn-ink);
+}
+
+.exam-marks__chips .exam-chip--draft strong {
+  color: var(--warn-ink);
+}
+
+/* marks inputs: dense, tabular, 34px */
+.marks-input {
+  width: 84px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-xs);
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-900);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.marks-input:hover:not(:disabled) {
+  border-color: var(--ink-200);
 }
 
 .marks-input:focus {
   outline: none;
-  border-color: var(--vvs-primary);
-  box-shadow: 0 0 0 3px rgba(95, 109, 176, 0.14);
+  border-color: var(--brand-500);
+  box-shadow: var(--ring);
+  background: var(--surface);
 }
 
 .marks-input:disabled {
-  background: #f7f7fb;
-  color: var(--vvs-muted);
+  background: var(--surface-sunken);
+  border-color: var(--line);
+  color: var(--ink-400);
+  cursor: not-allowed;
 }
 
+.marks-input::-webkit-outer-spin-button,
+.marks-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.marks-input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.exam-marks__table-wrap {
+  max-height: 420px;
+  overflow: auto;
+  border-radius: var(--r-md);
+}
+
+.exam-marks__table-wrap .data-table {
+  min-width: 720px;
+}
+
+.exam-marks__table-wrap .data-table thead th {
+  top: 0;
+}
+
+.exam-grade {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--r-xs);
+  background: var(--brand-50);
+  border: 1px solid var(--brand-100);
+  color: var(--brand-700);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.exam-absent-flag {
+  margin-left: 6px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--danger-ink);
+}
+
+.exams-page .link-button.link-button--danger {
+  color: var(--danger-ink);
+}
+
+.exams-page .link-button.link-button--danger:hover {
+  color: #84201f;
+}
+
+.exam-marks__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+/* ─────────────── dialogs (unlock / override) ─────────────── */
+.exam-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(20, 23, 43, 0.42);
+}
+
+.exam-dialog {
+  width: min(480px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-3);
+  animation: exam-dialog-in 0.16s ease both;
+}
+
+@keyframes exam-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.exam-dialog__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.exam-dialog__icon {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-md);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-line);
+  color: var(--danger-ink);
+  font-size: 16px;
+}
+
+.exam-dialog__icon--warn {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+  color: var(--warn-ink);
+}
+
+.exam-dialog__head h3 {
+  font-size: 15px;
+  font-weight: 660;
+  margin: 0 0 4px;
+}
+
+.exam-dialog__head p {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-500);
+}
+
+.exam-dialog__grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px 14px;
+}
+
+.exam-dialog__check {
+  gap: 6px;
+}
+
+.exam-dialog__check .check {
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+
+.exam-dialog__actions {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.exam-dialog__warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: auto;
+  font-size: 11.5px;
+  color: var(--danger-ink);
+}
+
+/* ─────────────── result-total (student report card) ─────────────── */
 .result-total {
   display: flex;
   flex-direction: column;
@@ -30,17 +620,70 @@
 }
 
 .result-total strong {
-  font-size: 1.5rem;
-  color: var(--vvs-primary-dark);
-  letter-spacing: -0.4px;
+  font-size: 22px;
+  font-weight: 680;
+  letter-spacing: -0.02em;
+  color: var(--ink-900);
+  font-variant-numeric: tabular-nums;
 }
 
 .result-total span {
-  font-size: 0.74rem;
-  color: var(--vvs-muted);
+  font-size: 11.5px;
+  color: var(--ink-400);
 }
 
-.text-mint {
-  color: var(--vvs-success);
-  margin-left: 6px;
+/* ─────────────── responsive ─────────────── */
+@media (max-width: 1080px) {
+  .exams-page .exam-create__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .exam-form__fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .exams-page .exam-create__grid,
+  .exam-form__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .exam-card__actions {
+    width: 100%;
+  }
+
+  .exam-card__actions .btn-ghost,
+  .exam-card__actions .btn-primary,
+  .exam-card__actions .btn-danger {
+    flex: 1 1 auto;
+  }
+
+  .exams-page .exam-schedules {
+    overflow: visible;
+  }
+
+  .exams-page .exam-schedules .data-table,
+  .exam-marks__table-wrap .data-table {
+    min-width: 0;
+  }
+
+  .exam-marks__table-wrap {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .exam-dialog__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .exam-dialog__actions .btn-ghost,
+  .exam-dialog__actions .btn-danger {
+    flex: 1 1 auto;
+  }
+
+  .exam-dialog__warning {
+    width: 100%;
+    margin-right: 0;
+  }
 }

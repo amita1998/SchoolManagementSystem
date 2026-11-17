@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import * as admin from '../../services/admin.js';
 import { PageHeader, Notice } from '../../components/ui/PageHeader.jsx';
+import EmptyState from '../../components/ui/EmptyState.jsx';
 
 /**
  * The roster of the classes this teacher teaches. The server narrows the list (student.view.assigned);
@@ -67,41 +68,60 @@ export default function TeacherStudentsPage() {
       {error && <Notice kind="error">{error}</Notice>}
 
       <section className="section-card">
-        <div className="filter-row">
-          <input
-            type="search"
-            placeholder="Name or admission ID"
-            aria-label="Search students"
-            value={term}
-            onChange={(event) => {
-              setTerm(event.target.value);
-              setPage(1);
-            }}
-          />
-          <select value={classId} onChange={(event) => pickClass(event.target.value)} aria-label="Class">
-            <option value="">Class: all mine</option>
-            {classes.map((item) => (
-              <option key={item.class_id} value={item.class_id}>
-                {item.class_name}
-              </option>
-            ))}
-          </select>
-          <span className="muted">{meta ? `${meta.total} student${meta.total === 1 ? '' : 's'}` : ''}</span>
-        </div>
-      </section>
+        <div className="filters">
+          <label className="filters__search">
+            <i className="bi bi-search" aria-hidden="true" />
+            <input
+              type="search"
+              placeholder="Name or admission ID"
+              aria-label="Search students"
+              value={term}
+              onChange={(event) => {
+                setTerm(event.target.value);
+                setPage(1);
+              }}
+            />
+          </label>
 
-      <section className="section-card">
+          <div className="filter-row">
+            <select
+              aria-label="Class"
+              value={classId}
+              onChange={(event) => pickClass(event.target.value)}
+            >
+              <option value="">All my classes</option>
+              {classes.map((item) => (
+                <option key={item.class_id} value={item.class_id}>
+                  {item.class_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {meta && (
+            <span className="summary-chip">
+              <strong>{meta.total}</strong> student{meta.total === 1 ? '' : 's'}
+            </span>
+          )}
+        </div>
+
         {busy && rows.length === 0 ? (
-          <p className="empty-state">Loading…</p>
+          <div className="loading-block" aria-hidden="true">
+            <div className="skeleton skeleton--table" />
+          </div>
         ) : rows.length === 0 ? (
-          <p className="empty-state">No students match this filter.</p>
+          <EmptyState
+            icon="bi-people"
+            title="No students match this filter"
+            text="Try a different name, admission ID or class. Only the classes you teach are listed."
+          />
         ) : (
           <div className="table-wrap">
             <table className="data-table">
               <thead>
                 <tr>
+                  <th>Student</th>
                   <th>Admission ID</th>
-                  <th>Name</th>
                   <th>Class</th>
                   <th>Section</th>
                   <th>Guardian mobile</th>
@@ -110,34 +130,30 @@ export default function TeacherStudentsPage() {
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.id}>
-                    <td>{row.admissionId}</td>
-                    <td>{row.name}</td>
-                    <td>{row.className || '—'}</td>
-                    <td>{row.sectionName || '—'}</td>
-                    <td>{row.guardianMobile || '—'}</td>
+                    <td data-label="Student">{row.name}</td>
+                    <td data-label="Admission ID" className="mono">{row.admissionId}</td>
+                    <td data-label="Class">{row.className || '—'}</td>
+                    <td data-label="Section">{row.sectionName || '—'}</td>
+                    <td data-label="Guardian mobile">{row.guardianMobile || '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
+
         {pageCount > 1 && (
-          <div className="form-actions">
-            <button type="button" className="btn btn--ghost btn--sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-              Previous
+          <nav className="pagination" aria-label="Roster pages">
+            <button type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              Prev
             </button>
-            <span className="muted">
-              Page {page} of {pageCount}
-            </span>
-            <button
-              type="button"
-              className="btn btn--ghost btn--sm"
-              disabled={page >= pageCount}
-              onClick={() => setPage((p) => p + 1)}
-            >
+            <button type="button" disabled={page >= pageCount} onClick={() => setPage((p) => p + 1)}>
               Next
             </button>
-          </div>
+            <span className="pagination__meta">
+              Page {page} of {pageCount} · {meta?.total} record{meta?.total === 1 ? '' : 's'}
+            </span>
+          </nav>
         )}
       </section>
     </div>

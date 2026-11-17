@@ -8,9 +8,18 @@ const USER_SELECT = `
   JOIN roles r ON r.id = u.role_id
 `;
 
+/**
+ * One identifier for every role. `users.username` is unique (case-insensitive) and so is
+ * `users.email`, so a username match is preferred and the email branch is the fallback —
+ * without the ORDER BY a value that is one account's username and another's email would
+ * resolve arbitrarily.
+ */
 export function findByIdentifier(identifier) {
   return query(
-    `${USER_SELECT} WHERE lower(u.username) = lower($1) OR lower(u.email) = lower($1) LIMIT 1`,
+    `${USER_SELECT}
+      WHERE lower(u.username) = lower($1) OR lower(u.email) = lower($1)
+      ORDER BY (lower(u.username) = lower($1)) DESC, u.id
+      LIMIT 1`,
     [identifier],
   ).then((result) => result.rows[0] || null);
 }

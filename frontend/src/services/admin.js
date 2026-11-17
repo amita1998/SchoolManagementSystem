@@ -35,6 +35,11 @@ export async function resetStudentPassword(id) {
   return data.data;
 }
 
+export async function resetGuardianPassword(studentId, parentId) {
+  const { data } = await api.post(`/students/${studentId}/guardians/${parentId}/reset-password`);
+  return data.data;
+}
+
 export async function deleteStudent(id) {
   const { data } = await api.delete(`/students/${id}`);
   return data.data;
@@ -197,6 +202,7 @@ export default {
   updateStudent,
   changeStudentStatus,
   resetStudentPassword,
+  resetGuardianPassword,
   deleteStudent,
   addStudentDocuments,
   listTeachers,

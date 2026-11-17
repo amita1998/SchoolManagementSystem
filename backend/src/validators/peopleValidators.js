@@ -1,10 +1,11 @@
 import { z } from 'zod';
 
 const NAME = z.string().trim().min(1, 'Required').max(80, 'Too long');
+// Indian mobile: exactly ten digits, no spaces, no dashes, no letters, starts 6-9.
 const PHONE = z
   .string()
   .trim()
-  .regex(/^[0-9+\-\s]{7,15}$/, 'Enter a valid mobile number');
+  .regex(/^[6-9]\d{9}$/, 'Enter a 10-digit mobile number (digits only)');
 const DATE = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a valid date');
 const ID = z.union([z.number().int().positive(), z.string().regex(/^\d+$/).transform(Number)]);
 
@@ -48,14 +49,38 @@ export const admissionSchema = z.object({
   parents: z.array(guardianSchema).min(1, 'Add at least one parent or guardian').max(3),
 });
 
-export const updateStudentSchema = z.object({
-  firstName: NAME,
-  lastName: NAME,
-  gender: z.enum(['male', 'female', 'other']),
-  dateOfBirth: DATE,
-  bloodGroup: z.string().trim().max(5).optional().nullable(),
-  previousSchool: z.string().trim().max(160).optional().nullable(),
+/**
+ * Every field is optional: the profile screen sends only what the admin actually changed.
+ * `classId`/`sectionId` move the student inside the current academic year, `guardians`
+ * edits the contact block of an already-linked guardian (never adds or removes one).
+ */
+const guardianUpdateSchema = z.object({
+  id: ID,
+  mobile: PHONE.optional(),
+  email: z.union([z.string().trim().email('Enter a valid email'), z.literal('')]).optional().nullable(),
+  occupation: z.string().trim().max(80).optional().nullable(),
+  addressLine: z.string().trim().max(200).optional().nullable(),
+  city: z.string().trim().max(80).optional().nullable(),
+  state: z.string().trim().max(80).optional().nullable(),
+  pincode: z.string().trim().max(10).optional().nullable(),
 });
+
+export const updateStudentSchema = z
+  .object({
+    firstName: NAME.optional(),
+    lastName: NAME.optional(),
+    gender: z.enum(['male', 'female', 'other']).optional(),
+    dateOfBirth: DATE.optional(),
+    bloodGroup: z.string().trim().max(5).optional().nullable(),
+    previousSchool: z.string().trim().max(160).optional().nullable(),
+    rollNo: z.union([z.coerce.number().int().min(0).max(999), z.null()]).optional(),
+    classId: ID.optional(),
+    sectionId: ID.optional(),
+    guardians: z.array(guardianUpdateSchema).max(3).optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'Send at least one field to update',
+  });
 
 export const studentStatusSchema = z.object({
   status: z.enum(STUDENT_STATUSES),
@@ -84,8 +109,10 @@ export const teacherSchema = z.object({
     .optional(),
 });
 
+// The email is the teacher's login name, so it is editable — the service renames the account.
 export const updateTeacherSchema = teacherSchema
-  .omit({ email: true, assignments: true })
+  .omit({ assignments: true })
+  .partial()
   .extend({ status: z.enum(['active', 'on_leave', 'resigned']).optional() });
 
 export const teacherStatusSchema = z.object({

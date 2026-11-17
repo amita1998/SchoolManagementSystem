@@ -6,12 +6,13 @@ export default function NotFoundPage() {
     <main className="auth-page">
       <div className="auth-card auth-card--narrow">
         <section className="auth-form auth-form--center">
-          <div className="state-icon">
+          <span className="state-icon">
             <i className="bi bi-compass" aria-hidden="true" />
-          </div>
+          </span>
+          <span className="auth-eyebrow">Error 404</span>
           <h2>Page not found</h2>
           <p className="state-copy">The page you opened does not exist.</p>
-          <Link className="btn-signin btn-signin--inline" to="/">
+          <Link className="btn-primary auth-action" to="/">
             Go to the start
           </Link>
         </section>

@@ -6,6 +6,15 @@ import DataTable from '../../components/ui/DataTable.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import { greeting, formatMoney } from '../../utils/greeting.js';
 
+/** 12px muted context line for a section-card head. */
+function meta(text) {
+  return <span className="muted">{text}</span>;
+}
+
+function count(total, word) {
+  return `${total} ${word}${total === 1 ? '' : 's'}`;
+}
+
 export default function ParentDashboard() {
   const { data, childId, setChildId, reload } = useOutletContext();
 
@@ -39,22 +48,19 @@ export default function ParentDashboard() {
       />
 
       {data.children.length > 1 && (
-        <div className="child-switcher" role="tablist" aria-label="Select child">
+        <div className="tabs" role="tablist" aria-label="Select child">
           {data.children.map((item) => (
             <button
               key={item.id}
               type="button"
               role="tab"
               aria-selected={item.id === activeId}
-              className={`child-chip ${item.id === activeId ? 'is-active' : ''}`}
+              className={item.id === activeId ? 'is-active' : ''}
               onClick={() => switchChild(item.id)}
             >
-              <span className="child-chip__avatar">{item.name.charAt(0)}</span>
-              <span>
-                <strong>{item.name}</strong>
-                <small>
-                  {item.className} {item.section}
-                </small>
+              {item.name}
+              <span className="tab__count">
+                {item.className} {item.section}
               </span>
             </button>
           ))}
@@ -68,7 +74,7 @@ export default function ParentDashboard() {
       </div>
 
       <div className="dash__grid">
-        <SectionCard title="Child profile" subtitle={`Admission ${child.admissionId}`}>
+        <SectionCard title="Child profile" subtitle={meta(`Admission ${child.admissionId}`)}>
           <dl className="profile-facts">
             <div>
               <dt>Name</dt>
@@ -95,43 +101,60 @@ export default function ParentDashboard() {
 
         <SectionCard
           title="Results"
-          subtitle="Published examinations only"
+          subtitle={meta('Published exams only')}
           action={{ label: 'All results', to: '/parent/results' }}
         >
-          <DataTable
-            columns={[
-              { key: 'exam_name', label: 'Exam' },
-              { key: 'subject_name', label: 'Subject' },
-              {
-                key: 'marks',
-                label: 'Marks',
-                align: 'right',
-                render: (row) => `${Number(row.marks_obtained)} / ${Number(row.max_marks)}`,
-              },
-              { key: 'grade', label: 'Grade', align: 'right', render: (row) => row.grade || '—' },
-            ]}
-            rows={data.recentResults}
-            rowKey="subject_name"
-            empty="No published results yet."
-          />
+          {data.recentResults.length === 0 ? (
+            <EmptyState
+              icon="bi-journal-check"
+              title="No results published yet"
+              text="Marks appear here once the school publishes the examination."
+            />
+          ) : (
+            <DataTable
+              columns={[
+                { key: 'exam_name', label: 'Exam' },
+                { key: 'subject_name', label: 'Subject' },
+                {
+                  key: 'marks',
+                  label: 'Marks',
+                  align: 'right',
+                  render: (row) => `${Number(row.marks_obtained)} / ${Number(row.max_marks)}`,
+                },
+                { key: 'grade', label: 'Grade', align: 'right', render: (row) => row.grade || '—' },
+              ]}
+              rows={data.recentResults}
+              rowKey="subject_name"
+            />
+          )}
         </SectionCard>
       </div>
 
       <div className="dash__grid">
-        <SectionCard title="Payment history" action={{ label: 'Fees', to: '/parent/fees' }}>
+        <SectionCard
+          title="Payment history"
+          subtitle={meta(`${count(data.payments.length, 'receipt')} on file`)}
+          action={{ label: 'Fees', to: '/parent/fees' }}
+        >
           {data.payments.length === 0 ? (
-            <EmptyState icon="bi-receipt" title="No payments recorded" text="Receipts appear here after a payment is entered at the office." />
+            <EmptyState
+              icon="bi-receipt"
+              title="No payments recorded"
+              text="Receipts appear here after a payment is entered at the office."
+            />
           ) : (
-            <ul className="event-list">
+            <ul className="history-list">
               {data.payments.map((payment) => (
                 <li key={payment.receipt_no}>
-                  <span className="event-list__date">{payment.issued_on}</span>
+                  <span className="history-list__dot" aria-hidden="true" />
                   <div>
                     <strong>
-                      {formatMoney(payment.amount)} {payment.is_reversed ? '(reversed)' : ''}
+                      {formatMoney(payment.amount)}
+                      {payment.is_reversed ? ' · reversed' : ''}
                     </strong>
                     <span>
-                      {payment.receipt_no} · {payment.payment_mode.replace('_', ' ')}
+                      {payment.receipt_no} · {payment.payment_mode.replace('_', ' ')} ·{' '}
+                      {payment.issued_on}
                     </span>
                   </div>
                 </li>
@@ -140,17 +163,21 @@ export default function ParentDashboard() {
           )}
         </SectionCard>
 
-        <SectionCard title="Upcoming events">
+        <SectionCard title="Upcoming events" subtitle={meta('School calendar')}>
           {data.upcomingEvents.length === 0 ? (
             <EmptyState icon="bi-calendar-event" title="No upcoming events" />
           ) : (
-            <ul className="event-list">
+            <ul className="history-list">
               {data.upcomingEvents.map((event) => (
                 <li key={event.id}>
-                  <span className="event-list__date">{event.date_label}</span>
+                  <span className="history-list__dot" aria-hidden="true" />
                   <div>
                     <strong>{event.title}</strong>
-                    <span>{[event.category, event.location].filter(Boolean).join(' · ')}</span>
+                    <span>
+                      {[event.date_label, event.category, event.start_time, event.location]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </span>
                   </div>
                 </li>
               ))}

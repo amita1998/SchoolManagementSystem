@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { ROLE_LABEL } from '../../routes/roles.js';
 import NotificationBell from './NotificationBell.jsx';
 
 function formatToday(isoDate) {
@@ -13,6 +14,23 @@ function formatToday(isoDate) {
     year: 'numeric',
     timeZone: 'UTC',
   });
+}
+
+/** Presentation only: the session carries a username/email, not a display name. */
+function displayNameOf(user) {
+  const handle = user?.username || user?.email || '';
+  if (!handle) return 'Signed in';
+  return handle.includes('@') ? handle.split('@')[0] : handle;
+}
+
+function initialsOf(user) {
+  const handle = user?.username || user?.email || '';
+  const parts = handle
+    .replace(/@.*$/, '')
+    .split(/[.\-_\s]+/)
+    .filter(Boolean);
+  const letters = parts.slice(0, 2).map((part) => part[0]);
+  return (letters.join('') || '?').toUpperCase();
 }
 
 export default function TopBar({ today, unreadNotifications = 0, onNotificationsRead }) {
@@ -41,6 +59,11 @@ export default function TopBar({ today, unreadNotifications = 0, onNotifications
           disabled={!canSearchStudents}
           title={canSearchStudents ? 'Press Enter to open the student list' : 'Search lives on each page'}
         />
+        {canSearchStudents && (
+          <kbd className="topbar__search-key" aria-hidden="true">
+            Enter
+          </kbd>
+        )}
       </div>
 
       <div className="topbar__right">
@@ -50,6 +73,16 @@ export default function TopBar({ today, unreadNotifications = 0, onNotifications
         </span>
 
         <NotificationBell unreadNotifications={unreadNotifications} onRead={onNotificationsRead} />
+
+        <div className="topbar__user">
+          <span className="topbar__avatar" aria-hidden="true">
+            {initialsOf(user)}
+          </span>
+          <span className="topbar__user-text">
+            <span className="topbar__user-name">{displayNameOf(user)}</span>
+            <span className="topbar__user-role">{ROLE_LABEL[user?.role] || 'Account'}</span>
+          </span>
+        </div>
       </div>
     </header>
   );

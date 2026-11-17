@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import api from '../../services/api.js';
 import * as feesApi from '../../services/fees.js';
 import { PageHeader, Notice, StatusBadge } from '../../components/ui/PageHeader.jsx';
+import '../../styles/fees.css';
 
 const money = (value) =>
   `₹${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -50,7 +51,12 @@ export default function FeePanel({ studentId = null, childPicker = false, self =
         subtitle="Offline payments recorded by the school office. Amounts are in rupees."
         actions={
           childPicker && children.length > 1 ? (
-            <select value={active} onChange={(event) => setActive(event.target.value)} aria-label="Choose child">
+            <select
+              className="fee-child-select"
+              value={active}
+              onChange={(event) => setActive(event.target.value)}
+              aria-label="Choose child"
+            >
               {children.map((child) => (
                 <option key={child.id} value={child.id}>
                   {child.name}
@@ -68,27 +74,33 @@ export default function FeePanel({ studentId = null, childPicker = false, self =
         </p>
       ) : (
         <>
-          <section className="stat-row">
+          <section className="stat-grid stat-grid--three">
             <div className="stat-tile">
-              <span>Payable</span>
-              <strong>{money(data.totals.payable)}</strong>
+              <span className="stat-tile__label">Payable</span>
+              <strong className="stat-tile__value">{money(data.totals.payable)}</strong>
+              <span className="stat-tile__hint">After concession</span>
             </div>
             <div className="stat-tile">
-              <span>Paid</span>
-              <strong>{money(data.totals.paid)}</strong>
+              <span className="stat-tile__label">Paid</span>
+              <strong className="stat-tile__value">{money(data.totals.paid)}</strong>
+              <span className="stat-tile__hint">Receipted by the office</span>
             </div>
             <div className="stat-tile">
-              <span>Outstanding</span>
-              <strong className={data.totals.due > 0 ? 'is-due' : ''}>{money(data.totals.due)}</strong>
+              <span className="stat-tile__label">Outstanding</span>
+              <strong className={data.totals.due > 0 ? 'stat-tile__value fee-num fee-num--due' : 'stat-tile__value fee-num'}>
+                {money(data.totals.due)}
+              </strong>
+              <span className="stat-tile__hint">{data.totals.due > 0 ? 'Balance to collect' : 'Fully settled'}</span>
             </div>
           </section>
 
-          <section className="section-card">
+          <section className="section-card fee-ledger">
             <div className="section-card__head">
               <h3>Fee breakdown</h3>
+              <span className="muted">{data.rows.length} head{data.rows.length === 1 ? '' : 's'}</span>
             </div>
             {data.rows.length === 0 ? (
-              <p className="empty-state">No fee structure has been assigned yet.</p>
+              <p className="table-empty">No fee structure has been assigned yet.</p>
             ) : (
               <div className="table-wrap">
                 <table className="data-table">
@@ -96,21 +108,22 @@ export default function FeePanel({ studentId = null, childPicker = false, self =
                     <tr>
                       <th>Category</th>
                       <th>Fee</th>
-                      <th>Payable</th>
-                      <th>Paid</th>
-                      <th>Due</th>
+                      <th className="fee-num">Payable</th>
+                      <th className="fee-num">Paid</th>
+                      <th className="fee-num">Due</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.rows.map((row) => {
                       const due = Number(row.payable_amount) - Number(row.paid);
+                      const settled = due <= 0;
                       return (
                         <tr key={row.id}>
                           <td>{row.category}</td>
                           <td>{row.structure_name}</td>
-                          <td>{money(row.payable_amount)}</td>
-                          <td>{money(row.paid)}</td>
-                          <td className={due > 0 ? 'is-due' : ''}>{money(due)}</td>
+                          <td className="fee-num fee-num--strong">{money(row.payable_amount)}</td>
+                          <td className={settled ? 'fee-num fee-num--settled' : 'fee-num'}>{money(row.paid)}</td>
+                          <td className={settled ? 'fee-num fee-num--settled' : 'fee-num fee-num--due'}>{money(due)}</td>
                         </tr>
                       );
                     })}
@@ -123,20 +136,21 @@ export default function FeePanel({ studentId = null, childPicker = false, self =
           <section className="section-card">
             <div className="section-card__head">
               <h3>Installments</h3>
+              <span className="muted">{data.installments.length} scheduled</span>
             </div>
             {data.installments.length === 0 ? (
-              <p className="empty-state">No installments scheduled.</p>
+              <p className="table-empty">No installments scheduled.</p>
             ) : (
-              <ul className="card-list">
+              <ul className="fee-installments">
                 {data.installments.map((item) => (
                   <li key={`${item.structure_name}-${item.seq}`}>
                     <div>
                       <h4>{item.label}</h4>
-                      <span className="muted">{item.structure_name}</span>
+                      <span>{item.structure_name}</span>
                     </div>
-                    <div className="section-card__stat">
-                      <span>Due {item.due_label}</span>
-                      <strong>{money(item.amount)}</strong>
+                    <div>
+                      <span className="fee-date">Due {item.due_label}</span>
+                      <strong className="fee-installments__amount">{money(item.amount)}</strong>
                     </div>
                   </li>
                 ))}
@@ -144,12 +158,13 @@ export default function FeePanel({ studentId = null, childPicker = false, self =
             )}
           </section>
 
-          <section className="section-card">
+          <section className="section-card fee-ledger">
             <div className="section-card__head">
               <h3>Payment history</h3>
+              <span className="muted">{data.receipts.length} receipt{data.receipts.length === 1 ? '' : 's'}</span>
             </div>
             {data.receipts.length === 0 ? (
-              <p className="empty-state">No payment recorded yet.</p>
+              <p className="table-empty">No payment recorded yet.</p>
             ) : (
               <div className="table-wrap">
                 <table className="data-table">
@@ -157,7 +172,7 @@ export default function FeePanel({ studentId = null, childPicker = false, self =
                     <tr>
                       <th>Receipt</th>
                       <th>Date</th>
-                      <th>Amount</th>
+                      <th className="fee-num">Amount</th>
                       <th>Mode</th>
                       <th>Status</th>
                     </tr>
@@ -165,10 +180,16 @@ export default function FeePanel({ studentId = null, childPicker = false, self =
                   <tbody>
                     {data.receipts.map((receipt) => (
                       <tr key={receipt.id}>
-                        <td>{receipt.receipt_no}</td>
-                        <td>{receipt.issued_on}</td>
-                        <td>{money(receipt.amount)}</td>
-                        <td>{receipt.payment_mode}</td>
+                        <td>
+                          <span className="fee-receipt">{receipt.receipt_no}</span>
+                        </td>
+                        <td>
+                          <span className="fee-date">{receipt.issued_on}</span>
+                        </td>
+                        <td className="fee-num fee-num--strong">{money(receipt.amount)}</td>
+                        <td>
+                          <span className="soft-chip">{receipt.payment_mode}</span>
+                        </td>
                         <td>
                           {receipt.is_reversed ? (
                             <span className="status-badge status-badge--coral">reversed</span>

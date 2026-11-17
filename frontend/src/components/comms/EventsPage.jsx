@@ -5,6 +5,26 @@ import { Field } from '../../components/forms/Field.jsx';
 import { getClasses } from '../../services/admin.js';
 
 const CATEGORY_TONE = { holiday: 'coral', exam: 'purple', sports: 'blue' };
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const AUDIENCE_LABEL = {
+  all: 'Everyone',
+  classes: 'Selected classes',
+  teachers: 'Teachers',
+  students: 'Students',
+  parents: 'Parents',
+};
+
+/** Day + short month straight off the server's DD-MM-YYYY label — no Date parsing, no timezone drift. */
+function dateBlock(item) {
+  const [day, month] = String(item.date_label || '').split('-');
+  return { day: day || '–', month: MONTHS[Number(month) - 1] || '' };
+}
+
+function timeRange(item) {
+  if (!item.start_time) return 'All day';
+  return `${item.start_time}${item.end_time ? `–${item.end_time}` : ''}`;
+}
 
 export default function EventsPage({ canManage = false }) {
   const [rows, setRows] = useState([]);
@@ -63,39 +83,44 @@ export default function EventsPage({ canManage = false }) {
         <section className="section-card">
           <div className="section-card__head">
             <h3>New event</h3>
+            <span className="muted">Published events reach the audience you pick</span>
           </div>
-          <form className="form-grid" onSubmit={submit}>
-            <Field label="Title" htmlFor="ev-title">
-              <input id="ev-title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} required />
-            </Field>
-            <Field label="Date" htmlFor="ev-date">
-              <input id="ev-date" type="date" value={form.eventDate} onChange={(event) => setForm({ ...form, eventDate: event.target.value })} required />
-            </Field>
-            <Field label="Starts" htmlFor="ev-start">
-              <input id="ev-start" type="time" value={form.startTime} onChange={(event) => setForm({ ...form, startTime: event.target.value })} />
-            </Field>
-            <Field label="Ends" htmlFor="ev-end">
-              <input id="ev-end" type="time" value={form.endTime} onChange={(event) => setForm({ ...form, endTime: event.target.value })} />
-            </Field>
-            <Field label="Audience" htmlFor="ev-audience">
-              <select id="ev-audience" value={form.audience} onChange={(event) => setForm({ ...form, audience: event.target.value })}>
-                <option value="all">Everyone</option>
-                <option value="teachers">Teachers</option>
-                <option value="students">Students</option>
-                <option value="parents">Parents</option>
-              </select>
-            </Field>
-            <Field label="Location" htmlFor="ev-place">
-              <input id="ev-place" value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} />
-            </Field>
-            <Field label="Description" htmlFor="ev-desc" className="form-grid__full">
-              <textarea id="ev-desc" rows={2} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
-            </Field>
+          <form onSubmit={submit}>
+            <div className="form-grid">
+              <Field label="Title" htmlFor="ev-title">
+                <input id="ev-title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} required />
+              </Field>
+              <Field label="Date" htmlFor="ev-date">
+                <input id="ev-date" type="date" value={form.eventDate} onChange={(event) => setForm({ ...form, eventDate: event.target.value })} required />
+              </Field>
+              <Field label="Starts" htmlFor="ev-start">
+                <input id="ev-start" type="time" value={form.startTime} onChange={(event) => setForm({ ...form, startTime: event.target.value })} />
+              </Field>
+              <Field label="Ends" htmlFor="ev-end">
+                <input id="ev-end" type="time" value={form.endTime} onChange={(event) => setForm({ ...form, endTime: event.target.value })} />
+              </Field>
+              <Field label="Location" htmlFor="ev-place">
+                <input id="ev-place" value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} />
+              </Field>
+              <Field label="Audience" htmlFor="ev-audience">
+                <select id="ev-audience" value={form.audience} onChange={(event) => setForm({ ...form, audience: event.target.value })}>
+                  <option value="all">Everyone</option>
+                  <option value="teachers">Teachers</option>
+                  <option value="students">Students</option>
+                  <option value="parents">Parents</option>
+                </select>
+              </Field>
+              <Field label="Description" htmlFor="ev-desc" className="form-grid__full">
+                <textarea id="ev-desc" rows={3} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
+              </Field>
+            </div>
             <div className="form-actions">
               <label className="check">
                 <input type="checkbox" checked={form.publish} onChange={(event) => setForm({ ...form, publish: event.target.checked })} /> Publish immediately
               </label>
-              <button className="btn btn--primary" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Create event'}</button>
+              <button className="btn-primary" type="submit" disabled={busy}>
+                {busy ? 'Saving…' : 'Create event'}
+              </button>
             </div>
           </form>
         </section>
@@ -107,33 +132,54 @@ export default function EventsPage({ canManage = false }) {
           <span className="muted">{rows.length} event{rows.length === 1 ? '' : 's'}</span>
         </div>
         {rows.length === 0 ? (
-          <p className="empty-state">No events yet.</p>
+          <div className="empty-state">
+            <span className="empty-state__icon"><i className="bi bi-calendar3" aria-hidden="true" /></span>
+            <strong>No events yet</strong>
+            <span>Published school events will appear here, newest first.</span>
+          </div>
         ) : (
-          <ul className="timeline">
-            {rows.map((item) => (
-              <li key={item.id}>
-                <div className="timeline__date">
-                  <strong>{item.date_label}</strong>
-                  <span>{item.start_time ? `${item.start_time}${item.end_time ? `–${item.end_time}` : ''}` : 'All day'}</span>
-                </div>
-                <div className="timeline__body">
-                  <h4>
-                    {item.title}
-                    {item.category && (
-                      <span className={`status-badge status-badge--${CATEGORY_TONE[item.category.toLowerCase()] || 'lavender'}`}>{item.category}</span>
-                    )}
-                    {!item.is_published && <span className="status-badge status-badge--lavender">draft</span>}
-                  </h4>
-                  {item.description && <p>{item.description}</p>}
-                  <span className="muted">{item.location ? `${item.location} · ` : ''}{item.audience}</span>
-                </div>
-                {canManage && (
-                  <button className="btn btn--ghost btn--sm" type="button" onClick={() => remove(item.id)}>
-                    Delete
-                  </button>
-                )}
-              </li>
-            ))}
+          <ul className="event-feed">
+            {rows.map((item) => {
+              const { day, month } = dateBlock(item);
+              return (
+                <li key={item.id} className="event-feed__item">
+                  <div className="event-feed__date" aria-hidden="true">
+                    <span className="event-feed__day">{day}</span>
+                    <span className="event-feed__month">{month}</span>
+                  </div>
+                  <div className="event-feed__body">
+                    <div className="event-feed__title">
+                      <h4>{item.title}</h4>
+                      {item.category && (
+                        <span className={`status-badge status-badge--${CATEGORY_TONE[item.category.toLowerCase()] || 'lavender'}`}>{item.category}</span>
+                      )}
+                      {!item.is_published && <span className="status-badge status-badge--lavender">draft</span>}
+                    </div>
+                    {item.description && <p className="event-feed__desc">{item.description}</p>}
+                    <div className="comms-meta event-feed__meta">
+                      {item.location && (
+                        <span><i className="bi bi-geo-alt" aria-hidden="true" />{item.location}</span>
+                      )}
+                      <span><i className="bi bi-people" aria-hidden="true" />{AUDIENCE_LABEL[item.audience] || item.audience}</span>
+                      <span><i className="bi bi-clock" aria-hidden="true" />{timeRange(item)}</span>
+                    </div>
+                  </div>
+                  {canManage && (
+                    <div className="event-feed__aside">
+                      <button
+                        className="btn-ghost btn--icon comms-icon-btn"
+                        type="button"
+                        onClick={() => remove(item.id)}
+                        aria-label={`Delete ${item.title}`}
+                        title="Delete event"
+                      >
+                        <i className="bi bi-trash3" aria-hidden="true" />
+                      </button>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

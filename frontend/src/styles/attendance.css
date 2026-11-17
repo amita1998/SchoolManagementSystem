@@ -1,119 +1,458 @@
-/* Attendance screens (Step 5). */
+/* ═════════════════════════════════════════════════════════════
+   Attendance — page-scoped styles. Shared primitives
+   (.section-card, .data-table, .summary-chip, .status-badge,
+   .btn-*, .empty-state, .notice) come from ui.css.
+   ═════════════════════════════════════════════════════════════ */
 
-.status-buttons {
-  display: inline-flex;
-  gap: 4px;
-}
-
-.status-buttons button {
-  width: 34px;
-  height: 30px;
-  border-radius: 9px;
-  border: 1px solid var(--vvs-border);
-  background: #fff;
-  font-family: inherit;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--vvs-muted);
-  cursor: pointer;
-}
-
-.status-buttons button:hover:not(:disabled) {
-  border-color: #cfd4f0;
-}
-
-.status-buttons button.is-active[data-status='present'] { background: #e8f7f1; border-color: #bfe6d8; color: #2f7f66; }
-.status-buttons button.is-active[data-status='absent'] { background: #fdeef0; border-color: #f6cdd4; color: #b23a4e; }
-.status-buttons button.is-active[data-status='late'] { background: #fff4e0; border-color: #f7dfae; color: #9a6b12; }
-.status-buttons button.is-active[data-status='half_day'] { background: #eef1ff; border-color: #ccd4f8; color: var(--vvs-primary-dark); }
-.status-buttons button.is-active[data-status='leave'] { background: #f2ecff; border-color: #ddd0f7; color: #6a4fb8; }
-
-.status-buttons button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.summary-chips {
+/* ─────────────── toolbar ─────────────── */
+.attendance-toolbar {
   display: flex;
-  gap: 8px;
   flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.attendance-toolbar .form-field {
+  min-width: 156px;
+  margin: 0;
+}
+
+.attendance-toolbar .form-field input,
+.attendance-toolbar .form-field select {
+  height: 36px;
+  min-height: 36px;
+  font-variant-numeric: tabular-nums;
+}
+
+.attendance-toolbar__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding-top: 28px;
+  font-size: 12px;
+  color: var(--ink-400);
+  font-variant-numeric: tabular-nums;
+}
+
+.attendance-toolbar__meta i {
+  font-size: 13px;
+}
+
+.attendance-lock-notice {
   margin-bottom: 14px;
 }
 
-.summary-chip {
-  padding: 7px 12px;
-  border-radius: 999px;
-  background: #fafbff;
-  border: 1px solid var(--vvs-border);
-  font-size: 0.76rem;
-  color: var(--vvs-muted);
+/* ─────────────── summary strip ─────────────── */
+.attendance-summary {
+  margin-bottom: 12px;
 }
 
-.summary-chip strong {
-  color: var(--vvs-primary-dark);
+.attendance-summary .summary-chip {
+  font-variant-numeric: tabular-nums;
 }
 
-.correction-row {
-  border: 1px solid var(--vvs-border);
-  border-radius: 14px;
-  padding: 14px;
-  background: #fbfbff;
+.attendance-summary .summary-chip strong {
+  color: inherit;
+}
+
+.attendance-summary .summary-chip.is-ok {
+  background: var(--ok-bg);
+  border-color: var(--ok-line);
+  color: var(--ok-ink);
+}
+
+.attendance-summary .summary-chip.is-warn {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+  color: var(--warn-ink);
+}
+
+.attendance-summary .summary-chip.is-danger {
+  background: var(--danger-bg);
+  border-color: var(--danger-line);
+  color: var(--danger-ink);
+}
+
+.attendance-summary .summary-chip.is-info {
+  background: var(--info-bg);
+  border-color: var(--info-line);
+  color: var(--info-ink);
+}
+
+.attendance-summary .summary-chip.is-purple {
+  background: #f2eefb;
+  border-color: #e2d8f5;
+  color: #5c3fa0;
+}
+
+/* ─────────────── legend ─────────────── */
+.attendance-legend {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-bottom: 12px;
+  font-size: 11.5px;
+  color: var(--ink-400);
 }
 
-.correction-row.is-pending {
-  border-color: #f2d9a8;
+.attendance-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.attendance-legend strong {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-500);
+}
+
+.attendance-legend__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink-300);
+}
+
+.attendance-legend__dot--ok {
+  background: var(--ok-ink);
+}
+
+.attendance-legend__dot--warn {
+  background: var(--warn-ink);
+}
+
+.attendance-legend__dot--danger {
+  background: var(--danger-ink);
+}
+
+.attendance-legend__dot--info {
+  background: var(--info-ink);
+}
+
+.attendance-legend__dot--purple {
+  background: #5c3fa0;
+}
+
+.attendance-legend__note {
+  margin-left: auto;
+  font-style: italic;
+  color: var(--ink-500);
+}
+
+/* ─────────────── sheet table ─────────────── */
+.attendance-sheet.table-wrap {
+  max-height: 62vh;
+  overflow: auto;
+}
+
+.attendance-sheet .data-table {
+  min-width: 840px;
+}
+
+.attendance-sheet .data-table thead th {
+  top: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+
+.attendance-sheet .data-table tbody td {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+.attendance-student {
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+.attendance-row-meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--ink-400);
+  font-variant-numeric: tabular-nums;
+}
+
+.attendance-by {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* ─────────────── segmented status control ─────────────── */
+.status-buttons {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+}
+
+.status-buttons button {
+  width: 30px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--r-xs);
+  background: transparent;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--ink-400);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.status-buttons button:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--ink-700);
+}
+
+.status-buttons button:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 1px;
+}
+
+.status-buttons button.is-active[data-status='present'] {
+  background: var(--ok-bg);
+  border-color: var(--ok-line);
+  color: var(--ok-ink);
+}
+
+.status-buttons button.is-active[data-status='late'] {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+  color: var(--warn-ink);
+}
+
+.status-buttons button.is-active[data-status='absent'] {
+  background: var(--danger-bg);
+  border-color: var(--danger-line);
+  color: var(--danger-ink);
+}
+
+.status-buttons button.is-active[data-status='half_day'] {
+  background: var(--info-bg);
+  border-color: var(--info-line);
+  color: var(--info-ink);
+}
+
+.status-buttons button.is-active[data-status='leave'] {
+  background: #f2eefb;
+  border-color: #e2d8f5;
+  color: #5c3fa0;
+}
+
+.status-buttons button:disabled {
+  cursor: default;
+}
+
+/* Read-only rendering (admin monitor): the current status stays readable,
+   the alternatives step back so colour is never the only signal. */
+.status-buttons--readonly button {
+  opacity: 0.62;
+  cursor: default;
+}
+
+.status-buttons--readonly button.is-active {
+  opacity: 1;
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+/* ─────────────── corrections queue ─────────────── */
+.attendance-corrections.table-wrap {
+  overflow-x: auto;
+}
+
+.attendance-corrections .data-table {
+  min-width: 980px;
+}
+
+.attendance-corrections .data-table tbody tr.is-pending {
+  background: #fffdf6;
+}
+
+.attendance-corrections .data-table tbody tr.is-pending:hover {
   background: #fffaf0;
 }
 
-.correction-row__head {
-  display: flex;
-  justify-content: space-between;
+.attendance-corrections .data-table tbody tr.is-pending td:first-child {
+  box-shadow: inset 3px 0 0 var(--warn-line);
+}
+
+.attendance-reason {
+  max-width: 260px;
+  font-size: 12.5px;
+  color: var(--ink-600);
+  line-height: 1.5;
+}
+
+.att-change {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
+  white-space: nowrap;
 }
 
-.correction-row__meta,
-.correction-row__reason {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--vvs-muted);
+.att-change i {
+  font-size: 11px;
+  color: var(--ink-300);
 }
 
-.correction-row__reason {
-  color: var(--vvs-text);
-  font-style: italic;
+.att-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface-sunken);
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: capitalize;
+  color: var(--ink-600);
+  white-space: nowrap;
 }
 
-.correction-row .inline-form input[type='text'] {
-  flex: 1;
-  min-width: 160px;
-  padding: 9px 12px;
-  border: 1px solid var(--vvs-border);
-  border-radius: 10px;
+.att-chip--present {
+  background: var(--ok-bg);
+  border-color: var(--ok-line);
+  color: var(--ok-ink);
+}
+
+.att-chip--late {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+  color: var(--warn-ink);
+}
+
+.att-chip--absent {
+  background: var(--danger-bg);
+  border-color: var(--danger-line);
+  color: var(--danger-ink);
+}
+
+.att-chip--half_day {
+  background: var(--info-bg);
+  border-color: var(--info-line);
+  color: var(--info-ink);
+}
+
+.att-chip--leave {
+  background: #f2eefb;
+  border-color: #e2d8f5;
+  color: #5c3fa0;
+}
+
+.correction-review {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.correction-review input {
+  height: 32px;
+  width: 100%;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-xs);
+  background: var(--surface);
   font-family: inherit;
-  font-size: 0.82rem;
+  font-size: 12.5px;
+  color: var(--ink-800);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.tab__count {
-  margin-left: 6px;
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: var(--vvs-accent);
-  color: #fff;
-  font-size: 0.66rem;
-  font-weight: 700;
+.correction-review input:hover {
+  border-color: var(--ink-200);
 }
 
-.attendance-table td {
-  vertical-align: middle;
+.correction-review input:focus {
+  outline: none;
+  border-color: var(--brand-500);
+  box-shadow: var(--ring);
 }
 
-.file-list__date {
-  min-width: 76px;
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: var(--vvs-muted);
+.correction-review input::placeholder {
+  color: var(--ink-300);
+}
+
+.correction-review__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.correction-review__actions .btn-primary,
+.correction-review__actions .btn-danger {
+  flex: 1 1 auto;
+}
+
+.correction-reviewed {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--ink-600);
+}
+
+/* ─────────────── responsive ─────────────── */
+@media (max-width: 1080px) {
+  .attendance-toolbar__meta {
+    width: 100%;
+    margin-left: 0;
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .attendance-toolbar {
+    gap: 10px;
+  }
+
+  .attendance-toolbar .form-field {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .attendance-legend__note {
+    margin-left: 0;
+  }
+
+  .attendance-sheet.table-wrap {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .attendance-sheet .data-table,
+  .attendance-corrections .data-table {
+    min-width: 0;
+  }
+
+  .attendance-by,
+  .attendance-reason {
+    white-space: normal;
+    max-width: none;
+  }
+
+  .correction-review {
+    min-width: 0;
+  }
+
+  .attendance-sheet .data-table tbody tr,
+  .attendance-corrections .data-table tbody tr {
+    gap: 8px 12px;
+  }
+
+  .attendance-sheet .data-table tbody td,
+  .attendance-corrections .data-table tbody td {
+    padding: 0;
+  }
 }

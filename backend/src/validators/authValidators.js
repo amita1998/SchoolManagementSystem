@@ -11,10 +11,18 @@ const passwordField = z
   .regex(/[a-z]/, 'Add at least one lowercase letter')
   .regex(/[0-9]/, 'Add at least one digit');
 
+/**
+ * Sign-in is credential-only: the server reads the role from the account, so `role`
+ * is accepted (older clients still send it and a mismatch is still refused) but it is
+ * never required. `users.username` is unique case-insensitively, so the identifier
+ * resolves to exactly one account.
+ */
 export const loginSchema = z.object({
-  role: z.enum(['admin', 'teacher', 'student', 'parent'], {
-    errorMap: () => ({ message: 'Select a role' }),
-  }),
+  role: z
+    .enum(['admin', 'teacher', 'student', 'parent'], {
+      errorMap: () => ({ message: 'Select a role' }),
+    })
+    .optional(),
   identifier: z
     .string()
     .trim()

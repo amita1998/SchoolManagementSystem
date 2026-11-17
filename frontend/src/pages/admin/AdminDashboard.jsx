@@ -7,9 +7,19 @@ import QuickActions from '../../components/ui/QuickActions.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import { greeting } from '../../utils/greeting.js';
 
+/** 12px muted context line for a section-card head. */
+function meta(text) {
+  return <span className="muted">{text}</span>;
+}
+
+function count(total, word) {
+  return `${total} ${word}${total === 1 ? '' : 's'}`;
+}
+
 export default function AdminDashboard() {
   const { data } = useOutletContext();
   const trend = data.attendanceTrend || [];
+  const sections = data.classes.length;
 
   return (
     <div className="dash">
@@ -29,38 +39,51 @@ export default function AdminDashboard() {
 
       <QuickActions actions={data.quickActions} />
 
-      <div className="dash__grid">
+      <div className="dash__grid dash__grid--wide">
         <SectionCard
           title="Classes overview"
-          subtitle="Sections, class teachers and strength"
+          subtitle={meta(
+            sections ? `${count(sections, 'section')} in the current year` : 'Nothing configured yet',
+          )}
           action={{ label: 'All classes', to: '/admin/classes' }}
         >
-          <DataTable
-            columns={[
-              { key: 'class_name', label: 'Class' },
-              { key: 'section_name', label: 'Sec' },
-              {
-                key: 'class_teacher',
-                label: 'Class teacher',
-                render: (row) => row.class_teacher || <span className="muted">Not assigned</span>,
-              },
-              { key: 'students', label: 'Students', align: 'right' },
-            ]}
-            rows={data.classes}
-            rowKey="section_id"
-            empty="No classes configured yet."
-          />
+          {sections === 0 ? (
+            <EmptyState
+              icon="bi-grid-3x3-gap"
+              title="No classes configured yet"
+              text="Create a class and its sections to see strength and class teachers here."
+            />
+          ) : (
+            <DataTable
+              columns={[
+                { key: 'class_name', label: 'Class' },
+                { key: 'section_name', label: 'Sec' },
+                {
+                  key: 'class_teacher',
+                  label: 'Class teacher',
+                  render: (row) => row.class_teacher || <span className="muted">Not assigned</span>,
+                },
+                { key: 'students', label: 'Students', align: 'right' },
+              ]}
+              rows={data.classes}
+              rowKey="section_id"
+            />
+          )}
         </SectionCard>
 
-        <SectionCard title="Attendance overview" subtitle="Last 7 days, school-wide">
+        <SectionCard title="Attendance trend" subtitle={meta('Last 7 days · whole school')}>
           {trend.length === 0 ? (
             <EmptyState
               icon="bi-calendar2-x"
               title="No attendance recorded"
-              text="Class teachers mark attendance; the trend appears here."
+              text="Class teachers mark attendance; the daily trend appears here."
             />
           ) : (
-            <div className="bars">
+            <div
+              className="bars"
+              role="img"
+              aria-label={`Daily attendance percentage for the last ${trend.length} days`}
+            >
               {trend.map((day) => (
                 <div key={day.day} className="bars__item">
                   <span className="bars__value">{day.percentage}%</span>
@@ -87,14 +110,16 @@ export default function AdminDashboard() {
               text="Create an event to see it here."
             />
           ) : (
-            <ul className="event-list">
+            <ul className="history-list">
               {data.upcomingEvents.map((event) => (
                 <li key={event.id}>
-                  <span className="event-list__date">{event.date_label}</span>
+                  <span className="history-list__dot" aria-hidden="true" />
                   <div>
                     <strong>{event.title}</strong>
                     <span>
-                      {[event.category, event.start_time, event.location].filter(Boolean).join(' · ')}
+                      {[event.date_label, event.category, event.start_time, event.location]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </span>
                   </div>
                 </li>
@@ -103,14 +128,14 @@ export default function AdminDashboard() {
           )}
         </SectionCard>
 
-        <SectionCard title="Recent activity" subtitle="From the audit trail">
+        <SectionCard title="Recent activity" subtitle={meta('From the audit trail')}>
           {data.activities.length === 0 ? (
             <EmptyState icon="bi-clock-history" title="Nothing logged yet" />
           ) : (
-            <ul className="activity-list">
+            <ul className="history-list">
               {data.activities.map((activity, index) => (
                 <li key={`${activity.created_at}-${index}`}>
-                  <span className="activity-list__dot" />
+                  <span className="history-list__dot" aria-hidden="true" />
                   <div>
                     <strong>{activity.action.replace(/[._]/g, ' ')}</strong>
                     <span>

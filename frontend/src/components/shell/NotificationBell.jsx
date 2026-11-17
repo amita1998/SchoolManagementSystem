@@ -6,7 +6,7 @@ const TONE = { announcement: 'bi-megaphone', assignment: 'bi-journal-plus', fee:
 
 /**
  * The bell in the top bar. The unread count comes from the dashboard payload; the list itself is
- * fetched only when the popover opens, and marking a row read refreshes that count through `onRead`.
+ * fetched only when the panel opens, and marking a row read refreshes that count through `onRead`.
  */
 export default function NotificationBell({ unreadNotifications = 0, onRead }) {
   const [open, setOpen] = useState(false);
@@ -78,9 +78,12 @@ export default function NotificationBell({ unreadNotifications = 0, onRead }) {
       </button>
 
       {open && (
-        <div className="popover popover--wide" role="dialog" aria-label="Notifications">
-          <div className="popover__head">
-            <strong>Notifications</strong>
+        <div className="notif-panel" role="dialog" aria-label="Notifications">
+          <div className="notif-panel__head">
+            <span className="notif-panel__title">
+              Notifications
+              {counts.unread > 0 && <span className="notif-panel__count">{counts.unread} new</span>}
+            </span>
             {counts.unread > 0 && (
               <button type="button" className="link-button" onClick={markAll}>
                 Mark all read
@@ -88,28 +91,48 @@ export default function NotificationBell({ unreadNotifications = 0, onRead }) {
             )}
           </div>
 
-          {error && <p className="popover__error">{error}</p>}
-          {!rows && !error && <p className="muted">Loading…</p>}
-          {rows && rows.length === 0 && <p className="muted">Nothing yet.</p>}
+          <div className="notif-panel__body">
+            {error && (
+              <p className="notif-panel__error" role="alert">
+                <i className="bi bi-exclamation-circle" aria-hidden="true" />
+                <span>{error}</span>
+              </p>
+            )}
 
-          {rows && rows.length > 0 && (
-            <ul className="notif-list">
-              {rows.map((row) => (
-                <li key={row.id} className={row.read_at ? 'is-read' : 'is-unread'}>
-                  <button type="button" className="notif" onClick={() => follow(row)}>
-                    <i className={`bi ${TONE[row.type] || 'bi-bell'}`} aria-hidden="true" />
-                    <span>
-                      <strong>{row.title}</strong>
-                      {row.body && <span className="muted">{row.body}</span>}
-                      <span className="notif__meta">{row.created_label}</span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+            {!rows && !error && <p className="notif-panel__state">Loading notifications…</p>}
 
-          <span className="popover__foot">
+            {rows && rows.length === 0 && (
+              <div className="empty-state">
+                <span className="empty-state__icon">
+                  <i className="bi bi-bell-slash" aria-hidden="true" />
+                </span>
+                <strong>Nothing new</strong>
+                <p>Announcements, assignments and fee reminders will appear here.</p>
+              </div>
+            )}
+
+            {rows && rows.length > 0 && (
+              <ul className="notif-list">
+                {rows.map((row) => (
+                  <li key={row.id} className={row.read_at ? 'is-read' : 'is-unread'}>
+                    <button type="button" className="notif" onClick={() => follow(row)}>
+                      <span className="notif__icon">
+                        <i className={`bi ${TONE[row.type] || 'bi-bell'}`} aria-hidden="true" />
+                      </span>
+                      <span className="notif__text">
+                        <strong className="notif__title">{row.title}</strong>
+                        {row.body && <span className="notif__body">{row.body}</span>}
+                        <span className="notif__time">{row.created_label}</span>
+                      </span>
+                      {!row.read_at && <span className="notif__dot" aria-hidden="true" />}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <span className="notif-panel__foot">
             {counts.total ? `${counts.unread} unread of ${counts.total}` : 'Notifications are created by announcements and assignments.'}
           </span>
         </div>

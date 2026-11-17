@@ -53,6 +53,9 @@ import '../styles/attendance.css';
 import '../styles/exams.css';
 import '../styles/fees.css';
 import '../styles/comms.css';
+// The shared component layer loads last on purpose: it owns the bare selectors
+// (cards, tables, forms, buttons, badges) and must win over the legacy page CSS.
+import '../styles/ui.css';
 import TeacherDashboard from '../pages/teacher/TeacherDashboard.jsx';
 import StudentDashboard from '../pages/student/StudentDashboard.jsx';
 import ParentDashboard from '../pages/parent/ParentDashboard.jsx';

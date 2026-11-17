@@ -109,6 +109,20 @@ export async function createTeacher({ payload, actor, ip, userAgent }) {
   const password = temporaryPassword();
   const hash = await bcrypt.hash(password, config.auth.bcryptRounds);
 
+  // Duplicate guard: one living teacher per mobile number (the email is blocked by
+  // users.username being unique). The index teachers_mobile_unique backs this up.
+  const duplicate = await query(
+    'SELECT employee_id, first_name, last_name FROM teachers WHERE deleted_at IS NULL AND mobile = $1 LIMIT 1',
+    [payload.mobile],
+  );
+  if (duplicate.rows[0]) {
+    const existing = duplicate.rows[0];
+    throw conflict(
+      `A teacher with that mobile already exists (${existing.employee_id} · ${existing.first_name} ${existing.last_name}). Edit that record instead of adding a new one.`,
+      'TEACHER_EXISTS',
+    );
+  }
+
   try {
     const result = await withTransaction(async (client) => {
       const user = await client.query(
@@ -165,39 +179,92 @@ export async function createTeacher({ payload, actor, ip, userAgent }) {
     return { teacher: await getTeacher(result.teacherId), account: { username: payload.email.toLowerCase(), temporaryPassword: password } };
   } catch (error) {
     if (error.code === '23505') {
+      if (error.constraint === 'teachers_mobile_unique') {
+        throw conflict('A teacher with that mobile already exists.', 'TEACHER_EXISTS');
+      }
       throw conflict('A user with that email already exists.', 'EMAIL_IN_USE');
     }
     throw error;
   }
 }
 
+/**
+ * Partial update — the edit form sends only the fields the admin changed. The email is the
+ * teacher's login name, so changing it renames the account in the same transaction; a mobile
+ * or email that another teacher already holds answers 409 instead of a raw database error.
+ */
 export async function updateTeacher(teacherId, payload, actor, ip, userAgent) {
   const before = await query('SELECT * FROM teachers WHERE id = $1 AND deleted_at IS NULL', [teacherId]);
-  if (!before.rows[0]) throw notFound('Teacher not found.');
+  const current = before.rows[0];
+  if (!current) throw notFound('Teacher not found.');
+
+  const next = {
+    firstName: payload.firstName ?? current.first_name,
+    lastName: payload.lastName ?? current.last_name,
+    gender: payload.gender ?? current.gender,
+    dateOfBirth: payload.dateOfBirth === undefined ? current.date_of_birth : payload.dateOfBirth,
+    mobile: payload.mobile ?? current.mobile,
+    email: payload.email ?? current.email,
+    address: payload.address === undefined ? current.address : payload.address,
+    qualification: payload.qualification === undefined ? current.qualification : payload.qualification,
+    experienceYears:
+      payload.experienceYears === undefined ? current.experience_years : payload.experienceYears,
+    joiningDate: payload.joiningDate ?? current.joining_date,
+    status: payload.status ?? current.status,
+  };
+
+  if (next.mobile !== current.mobile) {
+    const clash = await query(
+      'SELECT employee_id FROM teachers WHERE deleted_at IS NULL AND mobile = $1 AND id <> $2',
+      [next.mobile, teacherId],
+    );
+    if (clash.rows[0]) {
+      throw conflict(
+        `Another teacher already uses that mobile number (${clash.rows[0].employee_id}).`,
+        'TEACHER_EXISTS',
+      );
+    }
+  }
 
   try {
-    const { rows } = await query(
-      `UPDATE teachers SET first_name = $2, last_name = $3, gender = $4, date_of_birth = $5,
-         mobile = $6, address = $7, qualification = $8, experience_years = $9, joining_date = $10,
-         status = $11
-       WHERE id = $1 AND deleted_at IS NULL RETURNING id`,
-      [
-        teacherId,
-        payload.firstName,
-        payload.lastName,
-        payload.gender,
-        payload.dateOfBirth ?? null,
-        payload.mobile,
-        payload.address ?? null,
-        payload.qualification ?? null,
-        payload.experienceYears ?? null,
-        payload.joiningDate,
-        payload.status ?? before.rows[0].status,
-      ],
-    );
-    if (!rows[0]) throw notFound('Teacher not found.');
+    await withTransaction(async (client) => {
+      await client.query(
+        `UPDATE teachers
+            SET first_name = $2, last_name = $3, gender = $4, date_of_birth = $5, mobile = $6,
+                email = $7, address = $8, qualification = $9, experience_years = $10,
+                joining_date = $11, status = $12
+          WHERE id = $1 AND deleted_at IS NULL`,
+        [
+          teacherId,
+          next.firstName,
+          next.lastName,
+          next.gender,
+          next.dateOfBirth ?? null,
+          next.mobile,
+          next.email ?? null,
+          next.address ?? null,
+          next.qualification ?? null,
+          next.experienceYears ?? null,
+          next.joiningDate,
+          next.status,
+        ],
+      );
+
+      // Email is the login identity; rename the account when it changes.
+      if (current.user_id && next.email && next.email !== current.email) {
+        await client.query('UPDATE users SET username = $2, email = $2 WHERE id = $1', [
+          current.user_id,
+          next.email,
+        ]);
+      }
+    });
   } catch (error) {
-    if (error.code === '23505') throw conflict('That email or mobile is already used.', 'DUPLICATE_TEACHER');
+    if (error.code === '23505') {
+      if (error.constraint === 'teachers_mobile_unique') {
+        throw conflict('Another teacher already uses that mobile number.', 'TEACHER_EXISTS');
+      }
+      throw conflict('That email is already a login for another account.', 'EMAIL_IN_USE');
+    }
     throw error;
   }
 
@@ -207,7 +274,19 @@ export async function updateTeacher(teacherId, payload, actor, ip, userAgent) {
     action: 'teacher.updated',
     entityType: 'teachers',
     entityId: teacherId,
-    oldValues: before.rows[0],
+    oldValues: {
+      firstName: current.first_name,
+      lastName: current.last_name,
+      gender: current.gender,
+      dateOfBirth: current.date_of_birth,
+      mobile: current.mobile,
+      email: current.email,
+      qualification: current.qualification,
+      experienceYears: current.experience_years,
+      joiningDate: current.joining_date,
+      address: current.address,
+      status: current.status,
+    },
     newValues: payload,
     ip,
     userAgent,

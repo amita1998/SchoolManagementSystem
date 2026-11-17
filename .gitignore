@@ -12,3 +12,7 @@ backend/storage/tmp/
 .DS_Store
 coverage/
 *.pid
+docs/
+README.md
+node_modules
+.env

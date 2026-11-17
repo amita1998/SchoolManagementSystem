@@ -97,8 +97,10 @@ export async function login({ role, identifier, password, rememberMe, ip, userAg
     throw forbidden('This account has been deactivated. Please contact the school office.', 'ACCOUNT_DISABLED');
   }
 
-  // Password was correct, so the role mismatch can be stated plainly.
-  if (user.role !== role) {
+  // Password was correct. If the client still sends a role and it is the wrong one,
+  // say so plainly; a credential-only sign-in (no role) simply continues with the
+  // account's own role.
+  if (role && user.role !== role) {
     await audit({
       actorUserId: user.id,
       actorRole: user.role,
@@ -125,7 +127,8 @@ export async function login({ role, identifier, password, rememberMe, ip, userAg
     action: 'auth.login',
     entityType: 'users',
     entityId: user.id,
-    newValues: { rememberMe: Boolean(rememberMe) },
+    // `role` is what the account resolved to, which is the whole point of role-free sign-in.
+    newValues: { rememberMe: Boolean(rememberMe), role: user.role, roleSupplied: Boolean(role) },
     ip,
     userAgent,
   });

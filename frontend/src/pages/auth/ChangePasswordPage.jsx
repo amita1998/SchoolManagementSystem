@@ -57,6 +57,7 @@ export default function ChangePasswordPage() {
       <div className="auth-card auth-card--narrow">
         <section className="auth-form">
           <header className="auth-form__head">
+            <span className="auth-eyebrow">Account security</span>
             <h2>{forced ? 'Set a new password' : 'Change your password'}</h2>
             <p>
               {forced

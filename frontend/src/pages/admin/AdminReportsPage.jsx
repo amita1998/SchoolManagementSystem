@@ -43,6 +43,20 @@ const REPORTS = [
 
 const STATUSES = ['active', 'new_admission', 'promoted', 'graduated', 'transferred', 'withdrawn', 'suspended'];
 
+/** Right-aligned + tabular so a column of figures can be read down. */
+const NUMERIC_COLUMNS = new Set([
+  'marked',
+  'present',
+  'absent',
+  'late',
+  'half_day',
+  'leave',
+  'percentage',
+  'max_marks',
+  'marks_obtained',
+  'amount',
+]);
+
 export default function AdminReportsPage() {
   const [classes, setClasses] = useState([]);
   const [exams, setExams] = useState([]);
@@ -97,6 +111,51 @@ export default function AdminReportsPage() {
 
   const report = REPORTS.find((item) => item.key === active);
 
+  function filterControl(filter) {
+    const value = params[filter.key] || '';
+    const onChange = (event) => setFilter(filter.key, event.target.value);
+
+    if (filter.type === 'class') {
+      return (
+        <select key={filter.key} value={value} onChange={onChange} aria-label={filter.label}>
+          <option value="">{filter.label}: all</option>
+          {classes.map((item) => (
+            <option key={item.id} value={item.id}>{item.name}</option>
+          ))}
+        </select>
+      );
+    }
+    if (filter.type === 'exam') {
+      return (
+        <select key={filter.key} value={value} onChange={onChange} aria-label={filter.label}>
+          <option value="">{filter.label}: choose…</option>
+          {exams.map((item) => (
+            <option key={item.id} value={item.id}>{item.name}</option>
+          ))}
+        </select>
+      );
+    }
+    if (filter.type === 'status') {
+      return (
+        <select key={filter.key} value={value} onChange={onChange} aria-label={filter.label}>
+          <option value="">{filter.label}: all</option>
+          {STATUSES.map((option) => (
+            <option key={option} value={option}>{option.replace('_', ' ')}</option>
+          ))}
+        </select>
+      );
+    }
+    return (
+      <input
+        key={filter.key}
+        type="date"
+        value={value}
+        onChange={onChange}
+        aria-label={filter.label}
+      />
+    );
+  }
+
   return (
     <div className="page">
       <PageHeader title="Reports" subtitle="Every list is built on the server; exports open in Excel." />
@@ -104,94 +163,86 @@ export default function AdminReportsPage() {
 
       <section className="section-card">
         <div className="section-card__head">
-          <h3>Choose a report</h3>
+          <h3>Build a report</h3>
+          <span className="muted">{report.filters.length} filter{report.filters.length === 1 ? '' : 's'}</span>
         </div>
-        <div className="tabs">
-          {REPORTS.map((item) => (
-            <button key={item.key} type="button" className={active === item.key ? 'is-active' : ''} onClick={() => { setActive(item.key); setData(null); }}>
-              {item.title}
+        <p className="report-hint">{report.hint}</p>
+        <div className="filters finance-filters report-toolbar">
+          <select
+            value={active}
+            onChange={(event) => {
+              setActive(event.target.value);
+              setData(null);
+            }}
+            aria-label="Report"
+          >
+            {REPORTS.map((item) => (
+              <option key={item.key} value={item.key}>{item.title}</option>
+            ))}
+          </select>
+          {report.filters.map((filter) => filterControl(filter))}
+          <div className="report-toolbar__actions">
+            <button className="btn-primary" type="button" onClick={() => preview()} disabled={busy}>
+              <i className="bi bi-play-fill" aria-hidden="true" /> {busy ? 'Building…' : 'Preview'}
             </button>
-          ))}
-        </div>
-        <p className="muted">{report.hint}</p>
-        <div className="filter-row">
-          {report.filters.map((filter) => {
-            if (filter.type === 'class') {
-              return (
-                <select key={filter.key} value={params[filter.key] || ''} onChange={(event) => setFilter(filter.key, event.target.value)} aria-label={filter.label}>
-                  <option value="">{filter.label}: all</option>
-                  {classes.map((item) => (
-                    <option key={item.id} value={item.id}>{item.name}</option>
-                  ))}
-                </select>
-              );
-            }
-            if (filter.type === 'exam') {
-              return (
-                <select key={filter.key} value={params[filter.key] || ''} onChange={(event) => setFilter(filter.key, event.target.value)} aria-label={filter.label}>
-                  <option value="">{filter.label}: choose…</option>
-                  {exams.map((item) => (
-                    <option key={item.id} value={item.id}>{item.name}</option>
-                  ))}
-                </select>
-              );
-            }
-            if (filter.type === 'status') {
-              return (
-                <select key={filter.key} value={params[filter.key] || ''} onChange={(event) => setFilter(filter.key, event.target.value)} aria-label={filter.label}>
-                  <option value="">{filter.label}: all</option>
-                  {STATUSES.map((value) => (
-                    <option key={value} value={value}>{value.replace('_', ' ')}</option>
-                  ))}
-                </select>
-              );
-            }
-            return (
-              <input
-                key={filter.key}
-                type="date"
-                value={params[filter.key] || ''}
-                onChange={(event) => setFilter(filter.key, event.target.value)}
-                aria-label={filter.label}
-              />
-            );
-          })}
-          <button className="btn btn--primary" type="button" onClick={() => preview()} disabled={busy}>
-            {busy ? 'Building…' : 'Preview'}
-          </button>
-          <button className="btn btn--ghost" type="button" onClick={download} disabled={!data || data.rows.length === 0}>
-            Download CSV
-          </button>
+            <button className="btn-ghost" type="button" onClick={download} disabled={!data || data.rows.length === 0}>
+              <i className="bi bi-download" aria-hidden="true" /> Download CSV
+            </button>
+          </div>
         </div>
       </section>
 
-      {data && (
+      {!data && (
         <section className="section-card">
+          <div className="empty-state">
+            <span className="empty-state__icon">
+              <i className="bi bi-table" aria-hidden="true" />
+            </span>
+            <strong>Nothing previewed yet</strong>
+            Choose a report and press Preview. The CSV exports the full result, not just the preview.
+          </div>
+        </section>
+      )}
+
+      {data && (
+        <section className="section-card report-stack">
           <div className="section-card__head">
             <h3>{report.title}</h3>
-            <span className="muted">{data.total} row{data.total === 1 ? '' : 's'}</span>
+            <span className="report-count">rows: {data.total}</span>
           </div>
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  {data.columns.map((column) => (
-                    <th key={column.key}>{column.label}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {data.rows.slice(0, 200).map((row, index) => (
-                  <tr key={index}>
+
+          {data.rows.length === 0 ? (
+            <p className="table-empty">No rows match these filters. Widen the range or clear a filter.</p>
+          ) : (
+            <div className="table-wrap report-scroll">
+              <table className="data-table">
+                <thead>
+                  <tr>
                     {data.columns.map((column) => (
-                      <td key={column.key}>{row[column.key] ?? '—'}</td>
+                      <th key={column.key} className={NUMERIC_COLUMNS.has(column.key) ? 'fee-num' : undefined}>
+                        {column.label}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {data.rows.length > 200 && <p className="muted">Showing the first 200 rows. Download the CSV for the full set.</p>}
+                </thead>
+                <tbody>
+                  {data.rows.slice(0, 200).map((row, index) => (
+                    <tr key={index}>
+                      {data.columns.map((column) => (
+                        <td key={column.key} className={NUMERIC_COLUMNS.has(column.key) ? 'fee-num' : undefined}>
+                          {row[column.key] ?? '—'}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {data.rows.length > 200 && (
+            <p className="report-note">Showing the first 200 rows. Download the CSV for the full set.</p>
+          )}
         </section>
       )}
     </div>

@@ -352,3 +352,129 @@ describe('academics', () => {
     await call('POST', `/api/academics/years/${ids.yearId}/current`, { token: admin.token });
   });
 });
+
+describe('duplicates, guardian logins and teacher editing', () => {
+  // A teacher created here is reused by the edit test below.
+  let teacherId;
+  let teacherPassword;
+
+  it('refuses to admit the same child twice', async () => {
+    const admin = await login('admin', ACCOUNTS.admin.username);
+    // 'New Pupil' was admitted by the first test in this file (same name + date of birth).
+    const res = await call('POST', '/api/students', { token: admin.token, form: admissionForm() });
+    assert.equal(res.status, 409, JSON.stringify(res.body));
+    assert.equal(res.body.error.code, 'STUDENT_EXISTS');
+    assert.match(res.body.error.message, /already admitted/);
+  });
+
+  it('gives the guardian a login named after their email and prints it with the admission', async () => {
+    const admin = await login('admin', ACCOUNTS.admin.username);
+    const form = admissionForm({
+      firstName: 'Guardian',
+      lastName: 'Login',
+      dateOfBirth: '2017-05-05',
+      parents: [
+        {
+          fullName: 'Login Guardian',
+          relationship: 'mother',
+          mobile: '9822200099',
+          email: 'login.guardian@vvs.test',
+        },
+      ],
+    });
+    const res = await call('POST', '/api/students', { token: admin.token, form });
+    assert.equal(res.status, 201, JSON.stringify(res.body));
+
+    const guardian = res.body.data.guardians.find((g) => g.username === 'login.guardian@vvs.test');
+    assert.ok(guardian, 'the admission slip lists the guardian login');
+
+    // The same temporary password opens the guardian's account.
+    const signIn = await login('parent', 'login.guardian@vvs.test', res.body.data.account.temporaryPassword);
+    assert.equal(signIn.body.success, true);
+    assert.equal(signIn.body.data.user.role, 'parent');
+  });
+
+  it('issues a fresh temporary password for a guardian', async () => {
+    const admin = await login('admin', ACCOUNTS.admin.username);
+    const student = await pool.query(
+      "SELECT s.id, p.id AS parent_id FROM students s JOIN student_parents sp ON sp.student_id = s.id JOIN parents p ON p.id = sp.parent_id WHERE lower(p.email) = 'login.guardian@vvs.test'",
+    );
+    const { id: studentId, parent_id: parentId } = student.rows[0];
+
+    const res = await call('POST', `/api/students/${studentId}/guardians/${parentId}/reset-password`, {
+      token: admin.token,
+    });
+    assert.equal(res.status, 200, JSON.stringify(res.body));
+    assert.equal(res.body.data.username, 'login.guardian@vvs.test');
+    assert.ok(res.body.data.temporaryPassword);
+
+    const signIn = await login('parent', res.body.data.username, res.body.data.temporaryPassword);
+    assert.equal(signIn.body.success, true);
+  });
+
+  it('refuses a second teacher with the same mobile number', async () => {
+    const admin = await login('admin', ACCOUNTS.admin.username);
+    const first = await call('POST', '/api/teachers', {
+      token: admin.token,
+      body: {
+        firstName: 'Meera',
+        lastName: 'Kulkarni',
+        gender: 'female',
+        mobile: '9812300077',
+        email: 'meera.kulkarni@vvs.test',
+        joiningDate: '2023-04-01',
+      },
+    });
+    assert.equal(first.status, 201, JSON.stringify(first.body));
+    teacherId = first.body.data.teacher.id;
+    teacherPassword = first.body.data.account.temporaryPassword;
+
+    const second = await call('POST', '/api/teachers', {
+      token: admin.token,
+      body: {
+        firstName: 'Meera',
+        lastName: 'Kulkarni',
+        gender: 'female',
+        mobile: '9812300077',
+        email: 'meera.k@vvs.test',
+        joiningDate: '2023-04-01',
+      },
+    });
+    assert.equal(second.status, 409, JSON.stringify(second.body));
+    assert.equal(second.body.error.code, 'TEACHER_EXISTS');
+  });
+
+  it('edits a teacher and moves the login to the new email', async () => {
+    const admin = await login('admin', ACCOUNTS.admin.username);
+    const res = await call('PUT', `/api/teachers/${teacherId}`, {
+      token: admin.token,
+      body: {
+        firstName: 'Meera',
+        lastName: 'Kulkarni-Rao',
+        mobile: '9812300077',
+        email: 'meera.rao@vvs.test',
+        qualification: 'M.Sc, B.Ed',
+      },
+    });
+    assert.equal(res.status, 200, JSON.stringify(res.body));
+    assert.equal(res.body.data.lastName, 'Kulkarni-Rao');
+    assert.equal(res.body.data.qualification, 'M.Sc, B.Ed');
+    assert.equal(res.body.data.login.username, 'meera.rao@vvs.test');
+
+    const signIn = await login('teacher', 'meera.rao@vvs.test', teacherPassword);
+    assert.equal(signIn.body.success, true, 'the renamed login works with the existing password');
+
+    const oldEmail = await login('teacher', 'meera.kulkarni@vvs.test', teacherPassword);
+    assert.equal(oldEmail.body.error?.code, 'INVALID_CREDENTIALS', 'the old address no longer signs in');
+  });
+
+  it('refuses a teacher mobile that another teacher already holds', async () => {
+    const admin = await login('admin', ACCOUNTS.admin.username);
+    const res = await call('PUT', `/api/teachers/${teacherId}`, {
+      token: admin.token,
+      body: { mobile: '9812300001' }, // Ravi Sharma from the earlier test
+    });
+    assert.equal(res.status, 409, JSON.stringify(res.body));
+    assert.equal(res.body.error.code, 'TEACHER_EXISTS');
+  });
+});
