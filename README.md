@@ -3,9 +3,10 @@
 Web application for a single school (Nursery to Class 12, academic year April–March,
 English only). React + Express + PostgreSQL.
 
-> Build status: **Steps 1–2 of 9 complete** — project setup, database schema, migrations, seed,
-> authentication with server-side role authorization, and the common login page.
-> Layout shell and the four dashboards are Step 3.
+> Build status: **Steps 1–3 of 9 complete** — project setup, database schema, migrations, seed,
+> authentication with server-side role authorization, the common login page, and the three-zone
+> dashboard shell with four role dashboards reading live data.
+> Student/teacher management is Step 4.
 
 ---
 
@@ -149,29 +150,54 @@ migration files. Enforced in the database, not only in code:
 * `audit_logs` is append-only (update/delete raise).
 * Soft deletes everywhere (`deleted_at`); nothing is hard-deleted by the app.
 
-## 7. Tests
+## 7. Dashboards (Step 3)
+
+One endpoint per role — the server decides the shape, the client never asks for another role:
+
+| Method | Path | Scope |
+|---|---|---|
+| GET | `/api/dashboard/admin` | whole school |
+| GET | `/api/dashboard/teacher` | classes/subjects assigned in the current academic year |
+| GET | `/api/dashboard/student` | the signed-in student only |
+| GET | `/api/dashboard/parent?childId=` | children linked to the account; another child → `403 CHILD_FORBIDDEN` |
+
+Each payload carries `cards`, role-specific lists and a shared `shell` block (user, month
+calendar, reminders, notices, unread notification count) so one request fills all three zones.
+
+Layout (`frontend/src/layouts/DashboardLayout.jsx`): sidebar 232 px · centre column · right panel
+292 px. At ≤1280 px the right panel moves below the centre, at ≤820 px the sidebar becomes a
+horizontal strip and everything stacks. Colours, radii and shadows are the tokens in
+`frontend/src/styles/global.css` (`#5F6DB0`, `#EE8791`, `#2D3156`, canvas `#F1F2F8`, Mulish).
+
+Navigation is filtered by the same permission strings the server enforces, and every module that
+is not built yet says which step it arrives in — there are no dead links and no fake numbers.
+
+## 8. Tests
 
 ```bash
 # one-time: a separate database so tests never touch dev data
 createdb -h 127.0.0.1 -p 5434 -U vvs vvs_test
 cd backend && DATABASE_URL=postgresql://vvs@127.0.0.1:5434/vvs_test npm run migrate
-npm test          # 17 auth tests, node:test, ~6 s
+npm test          # 24 tests (auth + dashboard), node:test, ~8 s
 ```
 
 `tests/support/testEnv.js` pins `NODE_ENV=test` and the `vvs_test` URL **before** anything imports
-the config, and `tests/support/db.js` truncates every business table between runs. Fixtures create
-one account per role (`*@vvs.test`, password `Test@1234`) plus separate throwaway accounts for the
-destructive lockout and password-change cases.
+the config, and `tests/support/db.js` truncates every business table between runs. Two fixture sets
+exist: `fixtures.js` (one account per role plus throwaway accounts for the destructive cases) and
+`academicFixtures.js` (a miniature school: Class 5 A/B, two students, one parent each, attendance,
+one published exam with a mark).
 
 Covered now: login per role, wrong password, unknown account, role mismatch, 5-attempt lockout,
 missing/invalid token, the forced-password-change gate, refresh rotation + replay detection,
-logout revocation, password change, audit rows, and the append-only audit trigger.
+logout revocation, password change, audit rows, the append-only audit trigger, and dashboard
+scoping — including a parent asking for another parent's child (`403`) and each role calling
+another role's dashboard (`403`).
 
-## 8. Roadmap
+## 9. Roadmap
 
 1. ✅ Setup, schema, migrations, seed
 2. ✅ Authentication, roles, common login page
-3. Layout shell + four dashboards
+3. ✅ Layout shell + four dashboards
 4. Student, teacher, class, subject management
 5. Attendance + correction workflow
 6. Examinations, marks, report cards

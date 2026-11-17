@@ -127,7 +127,34 @@ files. Each file runs in its own transaction under an advisory lock, so two depl
 * The user is re-read from the database on every request, so deactivating an account or changing
   a role takes effect immediately rather than when the JWT expires.
 
-## ADR-008 — lockout semantics
+## ADR-008 — one dashboard endpoint per role, not one generic endpoint
+
+**Decision.** `GET /api/dashboard/{admin|teacher|student|parent}` returns a shape built for that
+role. The route is guarded by `requireRole`-equivalent checks (`requirePermission` on a permission
+only that role holds) **and** re-checks `req.user.role === role` in the controller.
+
+**Why.** A generic `/dashboard` that adapts by role means every field must be tested against every
+role forever; one wrong `if` leaks a figure. Separate payloads make the contract explicit and let
+each builder's SQL carry its own `WHERE` scope (teacher: `teacher_subjects`; student: own
+`students.user_id`; parent: `student_parents`).
+
+**Alternatives.** A single endpoint with per-field permission tags — more flexible, much easier to
+leak by omission. **Trade-off:** four payload builders to keep in sync; each one is ~60 lines and
+its numbers are asserted in `tests/dashboard.test.js`.
+
+The parent payload takes `childId`, and the id is resolved against the account's own children
+before any query runs — an id outside that set is `403 CHILD_FORBIDDEN`, not a filtered-empty
+result. That is the IDOR guard the acceptance criteria call out.
+
+## ADR-009 — one request fills the whole screen
+
+The dashboard payload includes the `shell` block (user identity, month calendar, reminders,
+notices, unread count). The layout renders the sidebar, top bar and right panel from that same
+response, so the three zones cannot disagree and a screen costs one round-trip (the BRD asks for
+dashboards under 3 s). "Today", the month grid and all date labels are computed **in the
+database** with `AT TIME ZONE 'Asia/Kolkata'`; the client never derives a date from a timestamp.
+
+## ADR-010 — lockout semantics
 
 Five consecutive failed passwords lock the account for 15 minutes (`users.failed_login_attempts`,
 `users.locked_until`). A successful login resets the counter. Once the window passes the counter

@@ -748,6 +748,153 @@ async function seedDemo(client, refs) {
       ],
     );
   }
+
+  // -------------------------------------------------------------------------
+  // Timetable: Mon-Sat, first six teaching periods, for the demo sections
+  // -------------------------------------------------------------------------
+  const periods = await client.query(
+    'SELECT id, period_no FROM periods WHERE is_break = FALSE ORDER BY period_no LIMIT 6',
+  );
+  const timetableClasses = ['Class 1', 'Class 5', 'Class 8', 'Class 10'];
+
+  for (const className of timetableClasses) {
+    const classId = refs.classIds.get(className);
+    const sectionId = refs.sectionIds.get(`${className}|A`);
+    const subjectRows = await client.query(
+      `SELECT cs.subject_id, s.name
+         FROM class_subjects cs JOIN subjects s ON s.id = cs.subject_id
+        WHERE cs.class_id = $1 ORDER BY s.name`,
+      [classId],
+    );
+    if (subjectRows.rows.length === 0) continue;
+
+    for (let day = 1; day <= 6; day += 1) {
+      for (let index = 0; index < periods.rows.length; index += 1) {
+        const subject = subjectRows.rows[(day + index) % subjectRows.rows.length];
+        const teacher = await one(
+          client,
+          `SELECT teacher_id FROM teacher_subjects
+            WHERE academic_year_id = $1 AND class_id = $2 AND subject_id = $3 LIMIT 1`,
+          [nowYear, classId, subject.subject_id],
+        );
+        if (!teacher) continue;
+        await client.query(
+          `INSERT INTO timetable_slots (academic_year_id, section_id, day_of_week, period_id, subject_id,
+             teacher_id, room, effective_from)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, '2026-04-01')
+           ON CONFLICT DO NOTHING`,
+          [nowYear, sectionId, day, periods.rows[index].id, subject.subject_id, teacher.teacher_id, 'Room 1'],
+        );
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Attendance: last 25 calendar days, Sundays excluded, deterministic statuses
+  // -------------------------------------------------------------------------
+  const attendanceDays = await client.query(
+    `SELECT to_char(d, 'YYYY-MM-DD') AS day
+       FROM generate_series((now() AT TIME ZONE 'Asia/Kolkata')::date - 24,
+                            (now() AT TIME ZONE 'Asia/Kolkata')::date, interval '1 day') AS d
+      WHERE extract(isodow FROM d) <> 7`,
+  );
+
+  for (const student of students) {
+    const studentId = studentIds.get(`${student.first}|${student.last}`);
+    const sectionId = refs.sectionIds.get(`${student.className}|A`);
+    if (!studentId) continue;
+    const classTeacher = await one(
+      client,
+      `SELECT t.user_id FROM class_teachers ct JOIN teachers t ON t.id = ct.teacher_id
+        WHERE ct.academic_year_id = $1 AND ct.section_id = $2`,
+      [nowYear, sectionId],
+    );
+    const markedBy = classTeacher?.user_id ?? adminRow?.id ?? null;
+    if (!markedBy) continue;
+
+    for (let index = 0; index < attendanceDays.rows.length; index += 1) {
+      const day = attendanceDays.rows[index].day;
+      const bucket = (studentId * 7 + index * 3) % 20;
+      const status = bucket === 0 ? 'absent' : bucket === 1 ? 'late' : bucket === 2 ? 'half_day' : 'present';
+      await client.query(
+        `INSERT INTO attendance (student_id, academic_year_id, section_id, attendance_date, status, marked_by)
+         VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING`,
+        [studentId, nowYear, sectionId, day, status, markedBy],
+      );
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // One published examination with submitted marks
+  // -------------------------------------------------------------------------
+  let exam = await one(
+    client,
+    'SELECT id FROM examinations WHERE academic_year_id = $1 AND lower(name) = lower($2) AND deleted_at IS NULL',
+    [nowYear, 'Term I Assessment'],
+  );
+  if (!exam) {
+    exam = await one(
+      client,
+      `INSERT INTO examinations (name, exam_type, academic_year_id, start_date, end_date,
+         publish_status, published_at, published_by, created_by)
+       VALUES ($1, 'mid_term', $2, '2026-09-14', '2026-09-22', 'published', now(), $3, $3)
+       RETURNING id`,
+      ['Term I Assessment', nowYear, adminRow?.id ?? null],
+    );
+  }
+
+  const grades = await client.query('SELECT id, code, min_percent, max_percent FROM grades');
+
+  for (const className of timetableClasses) {
+    const classId = refs.classIds.get(className);
+    const subjectsOfClass = await client.query(
+      `SELECT subject_id FROM class_subjects WHERE class_id = $1 ORDER BY subject_id LIMIT 3`,
+      [classId],
+    );
+    for (const subject of subjectsOfClass.rows) {
+      const schedule = await one(
+        client,
+        `INSERT INTO exam_schedules (exam_id, class_id, subject_id, exam_date, start_time, end_time,
+           room, max_marks)
+         VALUES ($1, $2, $3, '2026-09-15', '09:00', '10:30', 'Hall A', 100)
+         ON CONFLICT DO NOTHING
+         RETURNING id`,
+        [exam.id, classId, subject.subject_id],
+      );
+      let scheduleId = schedule?.id;
+      if (!scheduleId) {
+        const existing = await one(
+          client,
+          'SELECT id FROM exam_schedules WHERE exam_id = $1 AND class_id = $2 AND subject_id = $3',
+          [exam.id, classId, subject.subject_id],
+        );
+        scheduleId = existing?.id;
+      }
+      if (!scheduleId) continue;
+
+      const enrolled = await client.query(
+        'SELECT student_id FROM enrollments WHERE class_id = $1 AND academic_year_id = $2',
+        [classId, nowYear],
+      );
+      const teacher = await one(
+        client,
+        'SELECT user_id FROM teacher_subjects ts JOIN teachers t ON t.id = ts.teacher_id WHERE ts.class_id = $1 AND ts.subject_id = $2 LIMIT 1',
+        [classId, subject.subject_id],
+      );
+      for (const row of enrolled.rows) {
+        const obtained = 45 + ((row.student_id * 13 + subject.subject_id * 7) % 51); // 45..95
+        const grade = grades.rows.find(
+          (g) => obtained >= Number(g.min_percent) && obtained <= Number(g.max_percent),
+        );
+        await client.query(
+          `INSERT INTO marks (exam_schedule_id, student_id, marks_obtained, grade_id, status,
+             entered_by, submitted_at)
+           VALUES ($1, $2, $3, $4, 'submitted', $5, now()) ON CONFLICT DO NOTHING`,
+          [scheduleId, row.student_id, obtained, grade?.id ?? null, teacher?.user_id ?? adminRow?.id ?? null],
+        );
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -12,7 +12,7 @@ export const TEST_PASSWORD = 'Test@1234';
 export const ACCOUNTS = {
   admin: { role: 'admin', username: 'admin@vvs.test', email: 'admin@vvs.test' },
   teacher: { role: 'teacher', username: 'teacher@vvs.test', email: 'teacher@vvs.test' },
-  student: { role: 'student', username: 'VVS-000001', email: null },
+  student: { role: 'student', username: 'VVS-900001', email: null },
   parent: { role: 'parent', username: 'parent@vvs.test', email: 'parent@vvs.test' },
   // dedicated accounts so destructive tests never disturb the shared ones
   lockable: { role: 'teacher', username: 'lockme@vvs.test', email: 'lockme@vvs.test' },

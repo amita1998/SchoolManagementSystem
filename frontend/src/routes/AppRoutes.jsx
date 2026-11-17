@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
 import { homeFor } from './roles.js';
+import DashboardLayout from '../layouts/DashboardLayout.jsx';
+import ComingSoon from '../pages/ComingSoon.jsx';
 import LoginPage from '../pages/auth/LoginPage.jsx';
 import ChangePasswordPage from '../pages/auth/ChangePasswordPage.jsx';
 import UnauthorizedPage from '../pages/UnauthorizedPage.jsx';
@@ -42,37 +44,52 @@ export default function AppRoutes() {
       />
 
       <Route
-        path="/admin/*"
+        path="/admin"
         element={
           <ProtectedRoute roles={['admin']}>
-            <AdminDashboard />
+            <DashboardLayout role="admin" />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route index element={<AdminDashboard />} />
+        <Route path="*" element={<ComingSoon />} />
+      </Route>
+
       <Route
-        path="/teacher/*"
+        path="/teacher"
         element={
           <ProtectedRoute roles={['teacher']}>
-            <TeacherDashboard />
+            <DashboardLayout role="teacher" />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route index element={<TeacherDashboard />} />
+        <Route path="*" element={<ComingSoon />} />
+      </Route>
+
       <Route
-        path="/student/*"
+        path="/student"
         element={
           <ProtectedRoute roles={['student']}>
-            <StudentDashboard />
+            <DashboardLayout role="student" />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route index element={<StudentDashboard />} />
+        <Route path="*" element={<ComingSoon />} />
+      </Route>
+
       <Route
-        path="/parent/*"
+        path="/parent"
         element={
           <ProtectedRoute roles={['parent']}>
-            <ParentDashboard />
+            <DashboardLayout role="parent" />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route index element={<ParentDashboard />} />
+        <Route path="*" element={<ComingSoon />} />
+      </Route>
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
