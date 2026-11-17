@@ -1,0 +1,159 @@
+/* Communication: notices feed, event timeline, timetable grid, assignment cards. */
+.notice-feed,
+.timeline,
+.card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.notice-feed li {
+  border: 1px solid #ececf6;
+  border-left: 4px solid #5f6db0;
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: #fff;
+}
+
+.notice-feed li.is-read {
+  border-left-color: #d7d9e8;
+  background: #fbfbfe;
+}
+
+.notice-feed__meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.notice-feed h4 {
+  margin: 8px 0 4px;
+  color: #2d3156;
+}
+
+.notice-feed p {
+  margin: 0 0 10px;
+  color: #5a5f7f;
+  white-space: pre-wrap;
+}
+
+.timeline li {
+  display: grid;
+  grid-template-columns: 118px 1fr auto;
+  gap: 14px;
+  align-items: start;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f8;
+}
+
+.timeline li:last-child {
+  border-bottom: 0;
+}
+
+.timeline__date strong {
+  display: block;
+  color: #2d3156;
+}
+
+.timeline__date span {
+  color: #7b7f9e;
+  font-size: 12px;
+}
+
+.timeline__body h4 {
+  margin: 0 0 4px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.timeline__body p {
+  margin: 0 0 6px;
+  color: #5a5f7f;
+}
+
+.card-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: start;
+  border: 1px solid #ececf6;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.card-list h4 {
+  margin: 0 0 4px;
+  color: #2d3156;
+}
+
+.card-list p {
+  margin: 0 0 6px;
+  color: #5a5f7f;
+}
+
+.timetable th[scope='row'] {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  min-width: 96px;
+}
+
+.timetable td {
+  vertical-align: top;
+  min-width: 110px;
+}
+
+.timetable td strong {
+  display: block;
+  color: #2d3156;
+  font-size: 13px;
+}
+
+.timetable td span {
+  display: block;
+  font-size: 11px;
+}
+
+.timetable td.is-filled {
+  background: #f7f7fd;
+}
+
+.timetable tr.is-break td {
+  background: #fbfbfe;
+  font-style: italic;
+}
+
+.link-button {
+  border: 0;
+  background: none;
+  color: #ee8791;
+  font-size: 11px;
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #5a5f7f;
+  font-size: 13px;
+}
+
+.form-grid__full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 720px) {
+  .timeline li {
+    grid-template-columns: 1fr;
+  }
+}

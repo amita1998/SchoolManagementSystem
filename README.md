@@ -3,10 +3,12 @@
 Web application for a single school (Nursery to Class 12, academic year April–March,
 English only). React + Express + PostgreSQL.
 
-> Build status: **Steps 1–6 of 9 complete** — setup/schema/seed, authentication, dashboard shell,
-> student/teacher/class/subject management, attendance with the correction workflow, and
-> examinations → marks → report cards.
-> Fees are Step 7.
+> Build status: **Steps 1–9 of 10 complete** — setup/schema/seed, authentication, dashboard shell,
+> student/teacher/class/subject management, attendance with the correction workflow,
+> examinations → marks → report cards, the fee ledger with receipts, events/announcements/
+> notifications/assignments/timetable, and reports/settings/audit log.
+> Step 10 (test suite notes and deployment) is in `docs/DEPLOY.md`; the remaining roadmap item is a
+> single production rehearsal on the target server.
 
 ---
 
@@ -65,6 +67,7 @@ Useful scripts:
 | `npm run seed` | idempotent seed (safe to re-run) |
 | `npm run db:reset` | **dev only** drop schema, migrate, seed |
 | `npm run dev` | start API with `--watch` |
+| `npm run handover` | **dev/demo only** put one known password on every account and print the sign-in table (`HANDOVER_PASSWORD=…`) |
 
 ## 4. Frontend
 
@@ -150,7 +153,7 @@ migration files. Enforced in the database, not only in code:
 * `audit_logs` is append-only (update/delete raise).
 * Soft deletes everywhere (`deleted_at`); nothing is hard-deleted by the app.
 
-## 7. Dashboards (Step 3)
+## 7a. Dashboards (Step 3)
 
 One endpoint per role — the server decides the shape, the client never asks for another role:
 
@@ -237,13 +240,83 @@ Marks move `draft → submitted`; a submitted paper is read-only for the teacher
 unlocks it, and an admin override demands a reason and writes old + new values to the audit log.
 Students and parents can only read an exam after it is published, and only their own card.
 
-## 10. Tests
+## 10. Fees and receipts (Step 7)
+
+| Method | Path | Who |
+|---|---|---|
+| GET/POST | `/api/fees/categories` | admin |
+| GET/POST | `/api/fees/structures` | admin — a structure is per class + category with its installments |
+| DELETE | `/api/fees/structures/:id` | admin — refused once a student is assigned to it |
+| POST | `/api/fees/assign` | admin — assigns a structure to one student or a whole class |
+| GET | `/api/fees/overview` | admin — payable / paid / due for the year |
+| GET/POST | `/api/fees/payments` | admin — list and record an offline payment |
+| POST | `/api/fees/payments/:id/reverse` | admin — reason required |
+| GET | `/api/fees/summary/:studentId` or `/summary/me` | student own / parent child / admin |
+
+Money is `NUMERIC(12,2)` end to end. A receipt number (`VVS-RCP-000001`) comes from a database
+sequence, is unique and is never reused: a reversal is a **new** payment row linked to the original
+plus a reversal receipt, so the ledger keeps both entries and nothing is deleted. Balance is
+`payable − paid` computed by the server, never by the browser.
+
+`GET /api/fees/summary/me` is how the student screen asks for its own record; the id in the URL is
+never trusted for a student (another id → `403 FEE_FORBIDDEN`). Students see the screen only when the
+admin turns on *Let students see their own fees* in Settings (`school_settings.fee_visible_to_students`,
+off by default); parents are not gated. Until then the page says so instead of showing numbers.
+
+## 11. Communication and timetable (Step 8)
+
+| Area | Endpoints |
+|---|---|
+| Events | `GET/POST /api/comms/events`, `PUT/DELETE /api/comms/events/:id` |
+| Announcements | `GET/POST /api/comms/announcements`, `POST /:id/status` (publish/withdraw), `POST /:id/read`, `DELETE /:id` |
+| Notifications | `GET /api/comms/notifications`, `POST /api/comms/notifications/:id/read` |
+| Assignments | `GET/POST /api/comms/assignments`, `DELETE /api/comms/assignments/:id` |
+| Periods | `GET/POST /api/timetable/periods`, `DELETE /api/timetable/periods/:id` |
+| Timetable | `GET /api/timetable/mine`, `GET /api/timetable/sections/:sectionId`, `POST /api/timetable/slots`, `DELETE /api/timetable/slots/:id` |
+
+Audience rules live in one place (`commsService.classIdsForUser` + the `audiences` map), so every
+reader sees exactly one interpretation: `all`, `teachers`, `students`, `parents` or `selected classes`.
+An unpublished event/announcement is invisible to everyone except an admin, and a teacher only sees
+events addressed to teachers (or to their classes). Publishing an announcement fans out one
+`notifications` row per recipient; the unread count in the top bar comes from that table.
+
+Timetable is Mon–Sat × period 1–8. One lesson per `(section, day, period)`, and a teacher cannot be
+in two rooms in the same period — the partial unique index answers `409 TEACHER_BUSY`. Teachers,
+students and parents get a read-only grid (`mine`), the admin gets the section grid plus the editor.
+
+## 12. Reports, settings and audit (Step 9)
+
+| Method | Path | Who |
+|---|---|---|
+| GET/PUT | `/api/admin/settings` | admin — school identity, attendance lock time, student fee visibility |
+| GET | `/api/admin/audit` | admin — filter by action, entity, actor, date |
+| GET | `/api/admin/reports/students` | admin |
+| GET | `/api/admin/reports/attendance` | admin, teacher (own classes only) |
+| GET | `/api/admin/reports/results?examId=` | admin, teacher (own classes only) |
+| GET | `/api/admin/reports/fees` | admin |
+
+Every report is one builder returning `{ columns, rows }`, served as JSON for the screen and as
+`?format=csv` for Excel — the CSV is generated on the server, so the same permissions apply and the
+filename is stamped with the school's own date.
+
+Behaviour worth knowing:
+
+* the class-level reports are **narrowed to the teacher's own classes** in the service layer; a
+  teacher who teaches nothing gets an empty report rather than the whole school (this is a payload
+  leak, not a status-code one);
+* the results report is per exam — `GET …/reports/results` without `examId` answers
+  `400 VALIDATION_ERROR` with `error.fields.examId`, and an unknown id answers `404`;
+* `audit_logs` is append-only (a trigger refuses `UPDATE`/`DELETE`), and admin overrides write
+  `old_values` + `new_values` + the reason;
+* settings changes are audited with the previous and the new value.
+
+## 13. Tests
 
 ```bash
 # one-time: a separate database so tests never touch dev data
 createdb -h 127.0.0.1 -p 5434 -U vvs vvs_test
 cd backend && DATABASE_URL=postgresql://vvs@127.0.0.1:5434/vvs_test npm run migrate
-npm test          # 71 tests (auth + dashboards + management + attendance + exams), ~20 s
+npm test          # 102 tests (auth → reports), ~63 s
 ```
 
 `tests/support/testEnv.js` pins `NODE_ENV=test` and the `vvs_test` URL **before** anything imports
@@ -263,8 +336,13 @@ one-section-per-teacher rule, the class-teacher deactivation guard, and subject-
 Steps 5–6 add: the attendance lock for a past day, the admin-cannot-mark rule, the correction
 approve/reject lifecycle, the percentage formula, marks out of range, submit-incomplete, teacher
 scope on a paper they do not teach, the publish gate, and the override audit trail.
+Steps 7–9 add (`tests/ops.test.js`): the fee ledger with a sequential receipt, a reversal that keeps
+both rows, students not reading fees until the setting is on and never another student's, the
+`/fees/summary/me` path, teacher double-booking (`409`), period grid + slot payload for the teacher's
+own week, announcement audience fan-out and read state, settings + audit rows, CSV export, the
+results report needing an exam (`400` / `404`), and the teacher-scoped class reports.
 
-## 11. Roadmap
+## 14. Roadmap
 
 1. ✅ Setup, schema, migrations, seed
 2. ✅ Authentication, roles, common login page
@@ -272,7 +350,8 @@ scope on a paper they do not teach, the publish gate, and the override audit tra
 4. ✅ Student, teacher, class, subject management
 5. ✅ Attendance + correction workflow
 6. ✅ Examinations, marks, report cards
-7. Fees and receipts
-8. Events, announcements, notifications, assignments, timetable
-9. Reports, settings, audit log
-10. Testing and deployment notes
+7. ✅ Fees and receipts
+8. ✅ Events, announcements, notifications, assignments, timetable
+9. ✅ Reports, settings, audit log
+10. ✅ Testing and deployment notes (`docs/DEPLOY.md`) — the only thing left outside the code is a
+    rehearsal (restore a backup, run the deploy checklist) on the school server.

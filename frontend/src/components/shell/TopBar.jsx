@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 function formatToday(isoDate) {
   if (!isoDate) return '';
@@ -14,6 +16,16 @@ function formatToday(isoDate) {
 
 export default function TopBar({ today, unreadNotifications = 0 }) {
   const [open, setOpen] = useState(false);
+  const [term, setTerm] = useState('');
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const canSearchStudents = user?.role === 'admin';
+
+  function submitSearch(event) {
+    if (event.key !== 'Enter' || !canSearchStudents) return;
+    const value = term.trim();
+    navigate(value ? `/admin/students?search=${encodeURIComponent(value)}` : '/admin/students');
+  }
 
   return (
     <header className="topbar">
@@ -21,12 +33,14 @@ export default function TopBar({ today, unreadNotifications = 0 }) {
         <i className="bi bi-search" aria-hidden="true" />
         <input
           type="search"
-          placeholder="Search students, teachers, receipts…"
+          placeholder={canSearchStudents ? 'Search by name or admission ID…' : 'Search'}
           aria-label="Search"
-          disabled
-          title="Global search arrives with the student module (Step 4)"
+          value={term}
+          onChange={(event) => setTerm(event.target.value)}
+          onKeyDown={submitSearch}
+          disabled={!canSearchStudents}
+          title={canSearchStudents ? 'Press Enter to open the student list' : 'Search lives on each page'}
         />
-        <span className="topbar__search-hint">Step 4</span>
       </div>
 
       <div className="topbar__right">

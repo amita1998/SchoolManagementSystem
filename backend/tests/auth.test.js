@@ -83,7 +83,11 @@ describe('POST /api/auth/login', () => {
   it('gives the admin every permission and the student none of the admin ones', async () => {
     assert.equal(roleHasPermission('admin', PERMISSIONS.SETTINGS_MANAGE), true);
     assert.equal(roleHasPermission('student', PERMISSIONS.SETTINGS_MANAGE), false);
-    assert.equal(roleHasPermission('student', PERMISSIONS.FEE_VIEW_OWN), false);
+    // A student holds the 'own fees' permission so the route can reach the service,
+    // where school_settings.fee_visible_to_students (default off) is the real gate.
+    assert.equal(roleHasPermission('student', PERMISSIONS.FEE_VIEW_OWN), true);
+    assert.equal(roleHasPermission('student', PERMISSIONS.FEE_MANAGE), false);
+    assert.equal(roleHasPermission('student', PERMISSIONS.FEE_VIEW_ALL), false);
     assert.equal(roleHasPermission('parent', PERMISSIONS.FEE_VIEW_CHILDREN), true);
     assert.equal(roleHasPermission('teacher', PERMISSIONS.MARKS_OVERRIDE), false);
     assert.equal(roleHasPermission('teacher', PERMISSIONS.ATTENDANCE_MARK), true);

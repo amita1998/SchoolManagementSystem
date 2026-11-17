@@ -1,0 +1,210 @@
+/* Fees: collection ledger, structures and receipts. */
+.stat-row {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-bottom: 18px;
+}
+
+.stat-tile {
+  background: #fff;
+  border-radius: 20px;
+  padding: 16px 18px;
+  box-shadow: 0 10px 30px rgba(45, 49, 86, 0.06);
+}
+
+.stat-tile span {
+  display: block;
+  color: #7b7f9e;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stat-tile strong {
+  font-size: 22px;
+  color: #2d3156;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.tabs button {
+  border: 0;
+  background: #fff;
+  color: #5f6db0;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(45, 49, 86, 0.05);
+}
+
+.tabs button.is-active {
+  background: #5f6db0;
+  color: #fff;
+}
+
+.picker {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  border: 1px solid #e6e7f2;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.picker button {
+  width: 100%;
+  border: 0;
+  background: #fff;
+  padding: 10px 14px;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.picker button:hover {
+  background: #f6f6fc;
+}
+
+.picker span {
+  color: #7b7f9e;
+  font-size: 13px;
+}
+
+.section-card__stat {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: #7b7f9e;
+}
+
+.section-card__stat strong {
+  color: #2d3156;
+}
+
+.filter-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.filter-row input {
+  border: 1px solid #e2e3ef;
+  border-radius: 12px;
+  padding: 9px 12px;
+  font: inherit;
+  color: #2d3156;
+  background: #fff;
+}
+
+.filter-row input[placeholder] {
+  min-width: 240px;
+  flex: 1;
+}
+
+.is-due {
+  color: #d9534f;
+  font-weight: 600;
+}
+
+.is-muted td {
+  color: #9a9db5;
+}
+
+.inline-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed #e6e7f2;
+  color: #7b7f9e;
+  font-size: 13px;
+}
+
+.inline-form input {
+  border: 1px solid #e2e3ef;
+  border-radius: 10px;
+  padding: 7px 10px;
+  font: inherit;
+  width: 160px;
+}
+
+.row-actions {
+  text-align: right;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(45, 49, 86, 0.35);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 40;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 24px;
+  padding: 22px 24px;
+  width: min(420px, 100%);
+  box-shadow: 0 30px 60px rgba(45, 49, 86, 0.2);
+}
+
+.modal h3 {
+  margin: 0 0 6px;
+}
+
+.btn--danger {
+  background: #ee8791;
+  color: #fff;
+  border: 0;
+  border-radius: 12px;
+  padding: 9px 16px;
+  font-weight: 600;
+}
+
+.btn--danger:disabled {
+  opacity: 0.55;
+}
+
+/* Hand-rolled field block used by the fee screens (matches .form-field visually). */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #5a5f7f;
+}
+
+.field input,
+.field select {
+  border: 1px solid #e2e3ef;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  color: #2d3156;
+  background: #fff;
+}
+
+.field input:focus,
+.field select:focus {
+  outline: 2px solid #c9cff0;
+  outline-offset: 1px;
+}

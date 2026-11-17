@@ -230,3 +230,60 @@ returned object carries the new status, which is how this was caught.
 a soft delete, because the numbers must never be reused. Deleting sets `deleted_at`, disables the
 login and keeps history; only classes, sections and subjects can be re-created under the same name
 (their unique indexes are partial on `deleted_at IS NULL`).
+
+## ADR-016 — fees are a ledger, not a balance column
+
+**Decision.** `fee_structures` (per class + category, with `fee_installments`) → `student_fees`
+(one assignment per student) → `fee_payments` (an append-only money row) → `fee_receipts`
+(`VVS-RCP-######` from a sequence). There is no `students.balance` column.
+
+**Reason.** A school needs to answer "what did this family pay, when, by which mode, with which
+receipt" a year later. A single balance column loses that, and any correction to it loses history.
+
+**Reversal.** A wrong payment is not deleted: `POST /fees/payments/:id/reverse` inserts a second,
+negative payment that points at the original (and issues its own receipt). Both rows stay, the
+receipt numbers are never reused, and the running total is the sum of the ledger.
+
+**Consequences.** Balance is computed (`payable − paid`) on the server for every screen, so a
+browser bug cannot invent a number. Reporting is a plain query over the ledger. The cost is that a
+refund is two rows rather than an edit — which is what an auditor wants.
+
+## ADR-017 — audience rules live in the service, not in the screen
+
+**Decision.** `commsService` resolves "who may see this" once (`classIdsForUser` + an `audiences`
+list per role). Events, announcements and assignments all filter through it; the client gets only
+what it is allowed to see.
+
+**Reason.** Three screens (teacher, student, parent) render the same list. Filtering in React
+would mean three copies of the rule, and the API would still hand a parent a teachers-only event.
+An aggregate payload leaks by *content*, not by status code, so the filter has to be in SQL.
+
+**Consequences.** A new audience value is one map entry plus a WHERE clause. Tests assert the
+payload for each role rather than the status.
+
+## ADR-018 — report builders return { columns, rows }, scoped by the actor
+
+**Decision.** Every report is a function `({ filters }, actor) → { columns, rows }`. The controller
+turns that into JSON or CSV; the service decides what the actor may see.
+
+**Reason.** JSON-on-screen and CSV-in-Excel must show the same rows with the same permissions —
+generating the CSV in the browser would re-implement both. A teacher holds `report.view.class`, so
+the class-level builders narrow themselves to the teacher's own classes; without that, a 200
+response would carry the whole school's marks (a payload leak, invisible to a status-code test).
+
+**Consequences.** The results report requires `examId` and answers `400 VALIDATION_ERROR` with
+`error.fields.examId` instead of letting a NULL parameter reach PostgreSQL as a 500. Every report
+also needs a test that checks *who* is in the rows, not just that the call succeeded.
+
+## ADR-019 — dev credentials are set, never read back
+
+**Decision.** `npm run handover` (`HANDOVER_PASSWORD=…`) writes one known password on every demo
+account, clears lockout and the forced-change flag, prints the sign-in table, and refuses to run
+with `NODE_ENV=production`.
+
+**Reason.** Passwords are bcrypt hashes; they cannot be read back, and a seed that prints a
+generated password once leaves nobody able to demo the app the next morning. Re-seeding to recover
+a password would wipe real data.
+
+**Consequences.** The dev database is never a source of truth for credentials, and no password is
+ever quoted from an old transcript — the command is re-run instead.

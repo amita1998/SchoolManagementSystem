@@ -147,6 +147,7 @@ export async function seedAcademicFixtures() {
      RETURNING id`,
     [ids.yearId, ids.admin],
   );
+  ids.examId = exam.rows[0].id;
   const schedule = await pool.query(
     `INSERT INTO exam_schedules (exam_id, class_id, subject_id, exam_date, start_time, end_time, max_marks)
      VALUES ($1, $2, $3, '2026-11-02', '09:00', '10:00', 100) RETURNING id`,

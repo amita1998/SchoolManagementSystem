@@ -1,6 +1,7 @@
-export default function Field({
+export function Field({
   label,
   id,
+  htmlFor,
   error,
   hint,
   required,
@@ -8,7 +9,7 @@ export default function Field({
   className = '',
   ...inputProps
 }) {
-  const inputId = id || inputProps.name;
+  const inputId = id || htmlFor || inputProps.name;
   return (
     <div className={`form-field ${error ? 'has-error' : ''} ${className}`}>
       {label && (
@@ -60,3 +61,5 @@ export function TextArea({ label, id, error, hint, rows = 3, ...props }) {
     </div>
   );
 }
+
+export default Field;

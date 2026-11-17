@@ -24,9 +24,32 @@ import AdminExamsPage from '../pages/admin/AdminExamsPage.jsx';
 import TeacherMarksPage from '../pages/teacher/TeacherMarksPage.jsx';
 import ResultsPage from '../pages/student/ResultsPage.jsx';
 import ParentResultsPage from '../pages/parent/ParentResultsPage.jsx';
+import AdminFeesPage from '../pages/admin/AdminFeesPage.jsx';
+import ParentFeesPage from '../pages/parent/ParentFeesPage.jsx';
+import StudentFeesPage from '../pages/student/StudentFeesPage.jsx';
+import AdminEventsPage from '../pages/admin/AdminEventsPage.jsx';
+import TeacherEventsPage from '../pages/teacher/TeacherEventsPage.jsx';
+import AdminNoticesPage from '../pages/admin/AdminNoticesPage.jsx';
+import TeacherNoticesPage from '../pages/teacher/TeacherNoticesPage.jsx';
+import StudentNoticesPage from '../pages/student/StudentNoticesPage.jsx';
+import ParentNoticesPage from '../pages/parent/ParentNoticesPage.jsx';
+import AdminTimetablePage from '../pages/admin/AdminTimetablePage.jsx';
+import TeacherTimetablePage from '../pages/teacher/TeacherTimetablePage.jsx';
+import StudentTimetablePage from '../pages/student/StudentTimetablePage.jsx';
+import ParentTimetablePage from '../pages/parent/ParentTimetablePage.jsx';
+import TeacherAssignmentsPage from '../pages/teacher/TeacherAssignmentsPage.jsx';
+import StudentAssignmentsPage from '../pages/student/StudentAssignmentsPage.jsx';
+import ParentAssignmentsPage from '../pages/parent/ParentAssignmentsPage.jsx';
+import StudentEventsPage from '../pages/student/StudentEventsPage.jsx';
+import ParentEventsPage from '../pages/parent/ParentEventsPage.jsx';
+import AdminReportsPage from '../pages/admin/AdminReportsPage.jsx';
+import AdminSettingsPage from '../pages/admin/AdminSettingsPage.jsx';
+import AdminAuditPage from '../pages/admin/AdminAuditPage.jsx';
 import '../styles/admin.css';
 import '../styles/attendance.css';
 import '../styles/exams.css';
+import '../styles/fees.css';
+import '../styles/comms.css';
 import TeacherDashboard from '../pages/teacher/TeacherDashboard.jsx';
 import StudentDashboard from '../pages/student/StudentDashboard.jsx';
 import ParentDashboard from '../pages/parent/ParentDashboard.jsx';
@@ -79,6 +102,13 @@ export default function AppRoutes() {
         <Route path="classes" element={<AcademicsPage />} />
         <Route path="attendance" element={<AdminAttendancePage />} />
         <Route path="examinations" element={<AdminExamsPage />} />
+        <Route path="fees" element={<AdminFeesPage />} />
+        <Route path="events" element={<AdminEventsPage />} />
+        <Route path="announcements" element={<AdminNoticesPage />} />
+        <Route path="timetable" element={<AdminTimetablePage />} />
+        <Route path="reports" element={<AdminReportsPage />} />
+        <Route path="settings" element={<AdminSettingsPage />} />
+        <Route path="audit" element={<AdminAuditPage />} />
         <Route path="*" element={<ComingSoon />} />
       </Route>
 
@@ -93,6 +123,10 @@ export default function AppRoutes() {
         <Route index element={<TeacherDashboard />} />
         <Route path="attendance" element={<TeacherAttendancePage />} />
         <Route path="marks" element={<TeacherMarksPage />} />
+        <Route path="assignments" element={<TeacherAssignmentsPage />} />
+        <Route path="timetable" element={<TeacherTimetablePage />} />
+        <Route path="events" element={<TeacherEventsPage />} />
+        <Route path="notices" element={<TeacherNoticesPage />} />
         <Route path="*" element={<ComingSoon />} />
       </Route>
 
@@ -107,6 +141,11 @@ export default function AppRoutes() {
         <Route index element={<StudentDashboard />} />
         <Route path="attendance" element={<StudentAttendancePage />} />
         <Route path="results" element={<ResultsPage title="My results" />} />
+        <Route path="assignments" element={<StudentAssignmentsPage />} />
+        <Route path="timetable" element={<StudentTimetablePage />} />
+        <Route path="events" element={<StudentEventsPage />} />
+        <Route path="notices" element={<StudentNoticesPage />} />
+        <Route path="fees" element={<StudentFeesPage />} />
         <Route path="*" element={<ComingSoon />} />
       </Route>
 
@@ -121,6 +160,11 @@ export default function AppRoutes() {
         <Route index element={<ParentDashboard />} />
         <Route path="attendance" element={<ParentAttendancePage />} />
         <Route path="results" element={<ParentResultsPage />} />
+        <Route path="fees" element={<ParentFeesPage />} />
+        <Route path="assignments" element={<ParentAssignmentsPage />} />
+        <Route path="timetable" element={<ParentTimetablePage />} />
+        <Route path="events" element={<ParentEventsPage />} />
+        <Route path="notices" element={<ParentNoticesPage />} />
         <Route path="*" element={<ComingSoon />} />
       </Route>
 

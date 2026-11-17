@@ -7,6 +7,8 @@ build/
 logs/
 storage/uploads/
 storage/tmp/
+backend/storage/uploads/
+backend/storage/tmp/
 .DS_Store
 coverage/
 *.pid

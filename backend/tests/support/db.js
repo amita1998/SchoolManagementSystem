@@ -54,6 +54,13 @@ export async function resetDatabase() {
   await pool.query("ALTER SEQUENCE admission_id_seq RESTART WITH 1");
   await pool.query("ALTER SEQUENCE employee_id_seq RESTART WITH 1");
   await pool.query("ALTER SEQUENCE receipt_no_seq RESTART WITH 1");
+  // The singleton settings row is reference data: recreate it so tests exercise the
+  // same defaults a fresh install has (fee visibility off, attendance closes at 23:59).
+  await pool.query(
+    `INSERT INTO school_settings (id, school_name, tagline, timezone, currency)
+     VALUES (1, 'Vision Valley School', 'Nursery to Class 12', 'Asia/Kolkata', 'INR')
+     ON CONFLICT (id) DO NOTHING`,
+  );
 }
 
 export { pool };

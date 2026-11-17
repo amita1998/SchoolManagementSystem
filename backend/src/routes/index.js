@@ -6,6 +6,10 @@ import teacherRoutes from './teachers.routes.js';
 import academicRoutes from './academics.routes.js';
 import attendanceRoutes from './attendance.routes.js';
 import examRoutes from './exams.routes.js';
+import feeRoutes from './fees.routes.js';
+import commsRoutes from './comms.routes.js';
+import timetableRoutes from './timetable.routes.js';
+import adminRoutes from './admin.routes.js';
 
 const router = Router();
 
@@ -16,5 +20,9 @@ router.use('/teachers', teacherRoutes);
 router.use('/academics', academicRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/exams', examRoutes);
+router.use('/fees', feeRoutes);
+router.use('/comms', commsRoutes);
+router.use('/timetable', timetableRoutes);
+router.use('/admin', adminRoutes);
 
 export default router;
