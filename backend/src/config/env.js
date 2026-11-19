@@ -50,6 +50,13 @@ export const config = {
     bcryptRounds: int('BCRYPT_ROUNDS', 12),
     maxLoginAttempts: int('MAX_LOGIN_ATTEMPTS', 5),
     lockoutMinutes: int('LOCKOUT_MINUTES', 15),
+    /**
+     * Same-origin deployments (api.school.com + app.school.com on the same eTLD+1, or a
+     * proxy) keep `lax`. Two different vercel.app projects are *cross-site* — vercel.app is
+     * on the public suffix list — so the refresh cookie must be `none` (which requires
+     * `secure`, already on in production) or every reload logs the user out.
+     */
+    cookieSameSite: (process.env.COOKIE_SAMESITE || 'lax').toLowerCase() === 'none' ? 'none' : 'lax',
   },
   uploads: {
     dir: path.resolve(BACKEND_ROOT, process.env.UPLOAD_DIR || 'storage/uploads'),

@@ -8,7 +8,7 @@ function cookieOptions(rememberMe, expiresAt) {
   const options = {
     httpOnly: true,
     secure: config.isProduction,
-    sameSite: 'lax',
+    sameSite: config.auth.cookieSameSite,
     path: '/api/auth',
   };
   // Remember me = persistent cookie; otherwise it dies with the browser session.
@@ -25,7 +25,11 @@ function setRefreshCookie(res, payload) {
 }
 
 function clearRefreshCookie(res) {
-  res.clearCookie(REFRESH_COOKIE, { path: '/api/auth' });
+  res.clearCookie(REFRESH_COOKIE, {
+    path: '/api/auth',
+    secure: config.isProduction,
+    sameSite: config.auth.cookieSameSite,
+  });
 }
 
 function requestMeta(req) {

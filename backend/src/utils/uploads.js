@@ -49,16 +49,28 @@ export function absolutePath(relativePath) {
  */
 export async function saveUpload({ file, folder }) {
   const directory = path.join(config.uploads.dir, folder);
-  await fs.mkdir(directory, { recursive: true });
-  const fileName = safeFileName(file.originalname);
-  const relative = path.posix.join(folder, fileName);
-  await fs.writeFile(path.join(directory, fileName), file.buffer, { mode: 0o640 });
-  return {
-    fileName: (file.originalname || 'file').slice(0, 200),
-    filePath: relative,
-    mimeType: file.mimetype,
-    sizeBytes: file.size,
-  };
+  try {
+    await fs.mkdir(directory, { recursive: true });
+    const fileName = safeFileName(file.originalname);
+    const relative = path.posix.join(folder, fileName);
+    await fs.writeFile(path.join(directory, fileName), file.buffer, { mode: 0o640 });
+    return {
+      fileName: (file.originalname || 'file').slice(0, 200),
+      filePath: relative,
+      mimeType: file.mimetype,
+      sizeBytes: file.size,
+    };
+  } catch (error) {
+    // Serverless platforms mount the bundle read-only: say so plainly instead of a 500.
+    if (error.code === 'EROFS' || error.code === 'EACCES' || error.code === 'EPERM') {
+      throw new AppError(
+        503,
+        'UPLOADS_UNAVAILABLE',
+        'Document storage is not configured on this deployment. Ask the school office to upload this file from the desktop app, or configure object storage (UPLOAD_DIR is read-only).',
+      );
+    }
+    throw error;
+  }
 }
 
 export async function removeUploads(relativePaths = []) {
