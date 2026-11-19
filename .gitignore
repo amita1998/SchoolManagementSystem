@@ -16,3 +16,6 @@ docs/
 README.md
 node_modules
 .env
+
+# Vercel CLI link + pulled env (never commit)
+.vercel/
