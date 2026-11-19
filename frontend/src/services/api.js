@@ -3,6 +3,9 @@ import session from './session.js';
 
 const baseURL = import.meta.env.VITE_API_URL || '/api';
 
+/** Shown by the login screen when the browser gets no response at all. */
+export const API_BASE_URL = baseURL;
+
 export const api = axios.create({
   baseURL,
   withCredentials: true,

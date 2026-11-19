@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { homeFor } from '../../routes/roles.js';
+import { API_BASE_URL as apiBaseUrl } from '../../services/api.js';
 import '../../styles/auth.css';
 
 const PROOF = [
@@ -70,12 +71,27 @@ export default function LoginPage() {
     } catch (error) {
       const payload = error.response?.data?.error;
       if (payload?.fields) setFieldErrors(payload.fields);
-      if (payload?.code === 'ACCOUNT_LOCKED' || payload?.code === 'ROLE_MISMATCH') {
+      if (!error.response) {
+        /**
+         * No response at all: DNS/offline, the API host is down, or CORS refused this origin.
+         * The plain "Could not sign in" message hides that, so name the real condition and the
+         * address the app was actually calling.
+         */
+        setFormError(
+          `Cannot reach the server at ${apiBaseUrl}. Check the internet connection and try again — if you opened this page from a new deployment URL, open the main site address instead.`,
+        );
+      } else if (payload?.code === 'INVALID_CREDENTIALS') {
+        setFormError('Wrong username or password. Check the spelling and try again.');
+      } else if (payload?.code === 'ACCOUNT_LOCKED' || payload?.code === 'ROLE_MISMATCH') {
         setFormError(payload.message);
       } else if (payload?.code === 'TOO_MANY_REQUESTS') {
         setFormError(payload.message);
       } else if (payload?.code === 'VALIDATION_ERROR') {
         setFormError('Please check the highlighted fields.');
+      } else if (error.response.status >= 500) {
+        setFormError(
+          payload?.message || `The server could not complete the sign-in (error ${error.response.status}). Please try again.`,
+        );
       } else {
         setFormError(payload?.message || 'Could not sign in. Please try again.');
       }
