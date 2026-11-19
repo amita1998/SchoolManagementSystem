@@ -26,7 +26,10 @@ else
       say "postgres :5434" "cleared stale postmaster.pid ($stale_pid)"
     fi
   fi
-  "$PGBIN/pg_ctl" -D "$PGDATA" -l "$PGDATA/server.log" -o "-p 5434 -k /tmp" start >/dev/null 2>&1
+  # setsid: start Postgres in its own session. Started straight from a terminal it stays in
+  # that shell's process group and dies with it (SIGTERM) — the reason the local DB kept
+  # disappearing mid-session.
+  setsid "$PGBIN/pg_ctl" -D "$PGDATA" -l "$PGDATA/server.log" -o "-p 5434 -k /tmp" start >/dev/null 2>&1
   for _ in $(seq 1 30); do
     pg_isready -h 127.0.0.1 -p 5434 >/dev/null 2>&1 && break
     sleep 0.5
@@ -40,7 +43,7 @@ fi
 if port_busy 4001; then
   say "api :4001" "already running"
 else
-  ( cd "$ROOT/backend" && nohup node src/server.js >"$LOGDIR/api.log" 2>&1 & )
+  ( cd "$ROOT/backend" && setsid nohup node src/server.js >"$LOGDIR/api.log" 2>&1 & )
   for _ in $(seq 1 40); do port_busy 4001 && break; sleep 0.5; done
   port_busy 4001 && say "api :4001" "started (log $LOGDIR/api.log)" \
     || { say "api :4001" "FAILED — tail $LOGDIR/api.log"; exit 1; }
@@ -50,7 +53,7 @@ fi
 if port_busy 5174; then
   say "web :5174" "already running"
 else
-  ( cd "$ROOT/frontend" && nohup npm run dev >"$LOGDIR/web.log" 2>&1 & )
+  ( cd "$ROOT/frontend" && setsid nohup npm run dev >"$LOGDIR/web.log" 2>&1 & )
   for _ in $(seq 1 60); do port_busy 5174 && break; sleep 0.5; done
   port_busy 5174 && say "web :5174" "started (log $LOGDIR/web.log)" \
     || { say "web :5174" "FAILED — tail $LOGDIR/web.log"; exit 1; }
