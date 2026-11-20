@@ -25,7 +25,6 @@ const PLANS = [
 ];
 
 const TABS = [
-  ['categories', 'Categories'],
   ['structures', 'Structures'],
   ['assignment', 'Assignment'],
   ['payments', 'Payments'],
@@ -68,7 +67,7 @@ export default function AdminFeesPage() {
         ))}
       </div>
 
-      {tab === 'categories' && <CategoriesTab onNotice={setNotice} />}
+      
       {tab === 'structures' && <StructuresTab onNotice={setNotice} />}
       {tab === 'assignment' && <AssignmentTab onNotice={setNotice} />}
       {tab === 'payments' && <PaymentsTab onNotice={setNotice} />}
@@ -134,7 +133,7 @@ function CategoriesTab({ onNotice }) {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Category</th>
+                <th>Fee</th>
                 <th>Code</th>
                 <th>Status</th>
               </tr>
@@ -172,7 +171,7 @@ function StructuresTab({ onNotice }) {
   const [form, setForm] = useState({ name: '', classId: '', categoryId: '', totalAmount: '', installmentPlan: 'quarterly' });
   const [busy, setBusy] = useState(false);
   /** Class-wise setup: one category + one plan, an amount per class. */
-  const [bulk, setBulk] = useState({ categoryId: '', installmentPlan: 'quarterly', amounts: {} });
+  const [bulk, setBulk] = useState({ installmentPlan: 'quarterly', amounts: {} });
   const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = useCallback(() => {
@@ -191,7 +190,7 @@ function StructuresTab({ onNotice }) {
     event.preventDefault();
     setBusy(true);
     try {
-      await feesApi.createStructure({ ...form, classId: Number(form.classId), categoryId: Number(form.categoryId), totalAmount: Number(form.totalAmount) });
+      await feesApi.createStructure({ ...form, classId: Number(form.classId), totalAmount: Number(form.totalAmount) });
       onNotice({ kind: 'success', text: 'Fee structure created with its installments.' });
       setForm({ name: '', classId: '', categoryId: '', totalAmount: '', installmentPlan: 'quarterly' });
       load();
@@ -210,7 +209,6 @@ function StructuresTab({ onNotice }) {
         .map((klass) => ({ classId: klass.id, totalAmount: Number(bulk.amounts[klass.id] ?? 0) }))
         .filter((entry) => entry.totalAmount >= 0);
       const result = await feesApi.bulkStructures({
-        categoryId: Number(bulk.categoryId),
         installmentPlan: bulk.installmentPlan,
         entries,
       });
@@ -253,14 +251,6 @@ function StructuresTab({ onNotice }) {
               ))}
             </select>
           </Field>
-          <Field label="Category" htmlFor="st-cat">
-            <select id="st-cat" value={form.categoryId} onChange={(event) => setForm({ ...form, categoryId: event.target.value })} required>
-              <option value="">Choose…</option>
-              {categories.map((item) => (
-                <option key={item.id} value={item.id}>{item.name}</option>
-              ))}
-            </select>
-          </Field>
           <Field label="Total (₹)" htmlFor="st-total">
             <input id="st-total" type="number" min="0" step="0.01" value={form.totalAmount} onChange={(event) => setForm({ ...form, totalAmount: event.target.value })} required />
           </Field>
@@ -284,15 +274,6 @@ function StructuresTab({ onNotice }) {
         </div>
         <form onSubmit={saveClassWise}>
           <div className="form-grid">
-            <Field label="Category" htmlFor="bulk-cat">
-              <select id="bulk-cat" value={bulk.categoryId} required
-                onChange={(event) => setBulk({ ...bulk, categoryId: event.target.value })}>
-                <option value="">Choose…</option>
-                {categories.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
-            </Field>
             <Field label="Payment frequency" htmlFor="bulk-plan">
               <select id="bulk-plan" value={bulk.installmentPlan}
                 onChange={(event) => setBulk({ ...bulk, installmentPlan: event.target.value })}>
@@ -330,7 +311,7 @@ function StructuresTab({ onNotice }) {
             </table>
           </div>
           <div className="form-actions">
-            <button className="btn-primary" type="submit" disabled={bulkBusy || !bulk.categoryId}>
+            <button className="btn-primary" type="submit" disabled={bulkBusy}>
               {bulkBusy ? 'Saving…' : 'Save class-wise fees'}
             </button>
           </div>
@@ -350,7 +331,7 @@ function StructuresTab({ onNotice }) {
               <thead>
                 <tr>
                   <th>Class</th>
-                  <th>Category</th>
+                  <th>Fee</th>
                   <th>Name</th>
                   <th className="fee-num">Total</th>
                   <th>Plan</th>
@@ -713,7 +694,7 @@ function CollectTab({ onNotice, refreshToken = 0 }) {
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>Category</th>
+                      <th>Fee</th>
                       <th>Fee</th>
                       <th className="fee-num">Gross</th>
                       <th className="fee-num">Concession</th>
