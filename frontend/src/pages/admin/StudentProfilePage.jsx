@@ -5,6 +5,7 @@ import { PageHeader, StatusBadge, Notice } from '../../components/ui/PageHeader.
 import Field, { Select } from '../../components/forms/Field.jsx';
 import { formatDate } from '../../utils/greeting.js';
 import { digitsOnly, isValidMobile, MOBILE_MESSAGE, mobileInputProps } from '../../utils/phone.js';
+import { downloadIdCard } from '../../services/idCards.js';
 
 const STATUS_OPTIONS = [
   'active',
@@ -323,6 +324,10 @@ export default function StudentProfilePage() {
                 <i className="bi bi-pencil-square" aria-hidden="true" /> Edit details
               </button>
             )}
+            <button type="button" className="btn-ghost"
+              onClick={() => downloadIdCard('students', student.id, `id-card-${student.admission_id || student.id}.pdf`)}>
+              <i className="bi bi-person-vcard" aria-hidden="true" /> ID card
+            </button>
             <button type="button" className="btn-ghost" onClick={resetPassword}>
               <i className="bi bi-key" aria-hidden="true" /> Reset password
             </button>

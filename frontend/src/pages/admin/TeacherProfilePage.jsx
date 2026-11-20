@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as admin from '../../services/admin.js';
+import { downloadIdCard } from '../../services/idCards.js';
 import { PageHeader, StatusBadge, Notice } from '../../components/ui/PageHeader.jsx';
 import Field, { Select } from '../../components/forms/Field.jsx';
 import { formatDate } from '../../utils/greeting.js';
@@ -241,6 +242,10 @@ export default function TeacherProfilePage() {
                 <i className="bi bi-pencil-square" aria-hidden="true" /> Edit details
               </button>
             )}
+            <button type="button" className="btn-ghost"
+              onClick={() => downloadIdCard('teachers', teacher.id, `id-card-${teacher.employee_id || teacher.id}.pdf`)}>
+              <i className="bi bi-person-vcard" aria-hidden="true" /> ID card
+            </button>
             <button type="button" className="btn-ghost" onClick={resetPassword}>
               <i className="bi bi-key" aria-hidden="true" /> Reset password
             </button>

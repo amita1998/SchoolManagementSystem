@@ -29,6 +29,10 @@ import LibraryPage from '../pages/admin/LibraryPage.jsx';
 import StudentLibraryPage from '../pages/student/StudentLibraryPage.jsx';
 import TeacherLibraryPage from '../pages/teacher/TeacherLibraryPage.jsx';
 import ParentLibraryPage from '../pages/parent/ParentLibraryPage.jsx';
+import AdminLeavePage from '../pages/admin/AdminLeavePage.jsx';
+import TeacherLeavePage from '../pages/teacher/TeacherLeavePage.jsx';
+import StudentLeavePage from '../pages/student/StudentLeavePage.jsx';
+import ParentLeavePage from '../pages/parent/ParentLeavePage.jsx';
 import ParentFeesPage from '../pages/parent/ParentFeesPage.jsx';
 import StudentFeesPage from '../pages/student/StudentFeesPage.jsx';
 import AdminEventsPage from '../pages/admin/AdminEventsPage.jsx';
@@ -114,6 +118,7 @@ export default function AppRoutes() {
         <Route path="examinations" element={<AdminExamsPage />} />
         <Route path="fees" element={<AdminFeesPage />} />
         <Route path="library" element={<LibraryPage />} />
+        <Route path="leave" element={<AdminLeavePage />} />
         <Route path="events" element={<AdminEventsPage />} />
         <Route path="announcements" element={<AdminNoticesPage />} />
         <Route path="timetable" element={<AdminTimetablePage />} />
@@ -137,6 +142,7 @@ export default function AppRoutes() {
         <Route path="attendance" element={<TeacherAttendancePage />} />
         <Route path="marks" element={<TeacherMarksPage />} />
         <Route path="library" element={<TeacherLibraryPage />} />
+        <Route path="leave" element={<TeacherLeavePage />} />
         <Route path="assignments" element={<TeacherAssignmentsPage />} />
         <Route path="timetable" element={<TeacherTimetablePage />} />
         <Route path="events" element={<TeacherEventsPage />} />
@@ -161,6 +167,7 @@ export default function AppRoutes() {
         <Route path="notices" element={<StudentNoticesPage />} />
         <Route path="fees" element={<StudentFeesPage />} />
         <Route path="library" element={<StudentLibraryPage />} />
+        <Route path="leave" element={<StudentLeavePage />} />
         <Route path="*" element={<ComingSoon />} />
       </Route>
 
@@ -178,6 +185,7 @@ export default function AppRoutes() {
         <Route path="results" element={<ParentResultsPage />} />
         <Route path="fees" element={<ParentFeesPage />} />
         <Route path="library" element={<ParentLibraryPage />} />
+        <Route path="leave" element={<ParentLeavePage />} />
         <Route path="assignments" element={<ParentAssignmentsPage />} />
         <Route path="timetable" element={<ParentTimetablePage />} />
         <Route path="events" element={<ParentEventsPage />} />

@@ -910,3 +910,33 @@
 .library-page .section-card__head .check {
   font-size: 13px;
 }
+
+/* --- Leave --- */
+.leave-page .leave-reason {
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.leave-page .leave-types {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.leave-page .leave-types li {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.leave-page .leave-balance {
+  margin-bottom: 12px;
+}
+
+.leave-page .leave-balance .summary-chip strong {
+  font-variant-numeric: tabular-nums;
+}
