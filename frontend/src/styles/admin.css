@@ -940,3 +940,13 @@
 .leave-page .leave-balance .summary-chip strong {
   font-variant-numeric: tabular-nums;
 }
+
+/* --- Fees: class-wise amount grid --- */
+.fee-amount-input {
+  width: 130px;
+  text-align: right;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}

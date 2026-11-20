@@ -20,6 +20,12 @@ export async function createStructure(payload) {
   return data.data;
 }
 
+/** Class-wise setup: one category + plan, one amount per class. */
+export async function bulkStructures(payload) {
+  const { data } = await api.post('/fees/structures/bulk', payload);
+  return data.data.results;
+}
+
 export async function removeStructure(id) {
   const { data } = await api.delete(`/fees/structures/${id}`);
   return data.data;

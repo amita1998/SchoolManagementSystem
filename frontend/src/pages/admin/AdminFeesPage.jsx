@@ -17,10 +17,11 @@ const MODES = [
 ];
 
 const PLANS = [
-  ['monthly', 'Monthly (12)'],
-  ['quarterly', 'Quarterly (4)'],
-  ['term', 'Term (3)'],
-  ['one_time', 'One time'],
+  ['monthly', 'Monthly (12 installments)'],
+  ['quarterly', 'Quarterly (4 installments)'],
+  ['half_yearly', 'Half-yearly / six-monthly (2 installments)'],
+  ['term', 'Term (3 installments)'],
+  ['one_time', 'Yearly (1 payment)'],
 ];
 
 const TABS = [
@@ -170,6 +171,9 @@ function StructuresTab({ onNotice }) {
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState({ name: '', classId: '', categoryId: '', totalAmount: '', installmentPlan: 'quarterly' });
   const [busy, setBusy] = useState(false);
+  /** Class-wise setup: one category + one plan, an amount per class. */
+  const [bulk, setBulk] = useState({ categoryId: '', installmentPlan: 'quarterly', amounts: {} });
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = useCallback(() => {
     Promise.all([feesApi.structures(), feesApi.categories(), getClasses()])
@@ -195,6 +199,28 @@ function StructuresTab({ onNotice }) {
       onNotice({ kind: 'error', text: error.response?.data?.error?.message || 'Could not create the structure.' });
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function saveClassWise(event) {
+    event.preventDefault();
+    setBulkBusy(true);
+    try {
+      const entries = classes
+        .map((klass) => ({ classId: klass.id, totalAmount: Number(bulk.amounts[klass.id] ?? 0) }))
+        .filter((entry) => entry.totalAmount >= 0);
+      const result = await feesApi.bulkStructures({
+        categoryId: Number(bulk.categoryId),
+        installmentPlan: bulk.installmentPlan,
+        entries,
+      });
+      const made = result.filter((row) => row.action === 'created' || row.action === 'updated').length;
+      onNotice({ kind: 'success', text: `Class-wise fees saved: ${made} class(es) updated, plan ${bulk.installmentPlan.replace('_', '-')}.` });
+      load();
+    } catch (error) {
+      onNotice({ kind: 'error', text: error.response?.data?.error?.message || 'Could not save class-wise fees.' });
+    } finally {
+      setBulkBusy(false);
     }
   }
 
@@ -247,6 +273,66 @@ function StructuresTab({ onNotice }) {
           </Field>
           <div className="form-actions">
             <button className="btn-primary" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Create structure'}</button>
+          </div>
+        </form>
+      </section>
+
+      <section className="section-card">
+        <div className="section-card__head">
+          <h3>Class-wise setup</h3>
+          <span className="muted">One category · an amount per class</span>
+        </div>
+        <form onSubmit={saveClassWise}>
+          <div className="form-grid">
+            <Field label="Category" htmlFor="bulk-cat">
+              <select id="bulk-cat" value={bulk.categoryId} required
+                onChange={(event) => setBulk({ ...bulk, categoryId: event.target.value })}>
+                <option value="">Choose…</option>
+                {categories.map((item) => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Payment frequency" htmlFor="bulk-plan">
+              <select id="bulk-plan" value={bulk.installmentPlan}
+                onChange={(event) => setBulk({ ...bulk, installmentPlan: event.target.value })}>
+                {PLANS.map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Class</th>
+                  <th className="align-right">Annual fee (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {classes.map((klass) => (
+                  <tr key={klass.id}>
+                    <td data-label="Class">{klass.name}</td>
+                    <td className="align-right" data-label="Annual fee">
+                      <input type="number" min="0" step="0.01" className="fee-amount-input"
+                        aria-label={`${klass.name} annual fee`}
+                        value={bulk.amounts[klass.id] ?? ''}
+                        placeholder="0"
+                        onChange={(event) => setBulk({
+                          ...bulk,
+                          amounts: { ...bulk.amounts, [klass.id]: event.target.value },
+                        })} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="form-actions">
+            <button className="btn-primary" type="submit" disabled={bulkBusy || !bulk.categoryId}>
+              {bulkBusy ? 'Saving…' : 'Save class-wise fees'}
+            </button>
           </div>
         </form>
       </section>
