@@ -896,3 +896,17 @@
   font-variant-numeric: tabular-nums;
   color: var(--ink-900);
 }
+
+/* --- Library --- */
+.library-page .library-hint {
+  margin: 10px 2px 0;
+  font-size: 12.5px;
+}
+
+.library-page .data-table tr.is-overdue td {
+  background: color-mix(in srgb, var(--danger-50, #fdecec) 60%, transparent);
+}
+
+.library-page .section-card__head .check {
+  font-size: 13px;
+}

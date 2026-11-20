@@ -25,7 +25,7 @@ const NAV_GROUPS = {
     },
     {
       label: 'Administration',
-      paths: ['/admin/fees', '/admin/events', '/admin/announcements', '/admin/settings', '/admin/audit'],
+      paths: ['/admin/fees', '/admin/library', '/admin/events', '/admin/announcements', '/admin/settings', '/admin/audit'],
     },
   ],
   teacher: [
@@ -39,6 +39,7 @@ const NAV_GROUPS = {
         '/teacher/marks',
         '/teacher/assignments',
         '/teacher/timetable',
+        '/teacher/library',
       ],
     },
     { label: 'School', paths: ['/teacher/events', '/teacher/notices'] },
