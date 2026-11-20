@@ -94,6 +94,58 @@ export default function FeePanel({ studentId = null, childPicker = false, self =
             </div>
           </section>
 
+          {/**
+            * Payment status in words, and the three ways a family can clear the year.
+            * Parents asked for exactly this: "half payment done / full payment done" plus a
+            * choice of 1 (full), 2 (half-yearly) or 4 (quarterly) payments.
+            */}
+          {(() => {
+            const payable = Number(data.totals.payable || 0);
+            const paid = Number(data.totals.paid || 0);
+            const ratio = payable > 0 ? paid / payable : 0;
+            const status =
+              ratio >= 0.999
+                ? { label: 'Full payment done', tone: 'is-ok' }
+                : ratio >= 0.45
+                  ? { label: 'Half payment done', tone: 'is-warn' }
+                  : ratio > 0
+                    ? { label: 'Part payment done', tone: 'is-info' }
+                    : { label: 'No payment yet', tone: 'is-danger' };
+            const perHalf = Math.round((payable / 2) * 100) / 100;
+            const perQuarter = Math.round((payable / 4) * 100) / 100;
+            return (
+              <>
+                <div className={`fee-status-bar ${status.tone}`} role="status">
+                  <strong>{status.label}</strong>
+                  <span className="muted">
+                    {money(paid)} paid of {money(payable)} · {money(Math.max(0, payable - paid))} left
+                  </span>
+                </div>
+
+                <section className="section-card fee-options">
+                  <div className="section-card__head">
+                    <h3>How you can pay</h3>
+                    <span className="muted">Pay at the school office — every payment gets a receipt</span>
+                  </div>
+                  <ul className="fee-option-list">
+                    <li>
+                      <strong>Full payment</strong>
+                      <span>1 payment of {money(payable)}</span>
+                    </li>
+                    <li>
+                      <strong>Half payment</strong>
+                      <span>2 payments of {money(perHalf)} (June &amp; December)</span>
+                    </li>
+                    <li>
+                      <strong>Quarterly payment</strong>
+                      <span>4 payments of {money(perQuarter)}</span>
+                    </li>
+                  </ul>
+                </section>
+              </>
+            );
+          })()}
+
           <section className="section-card fee-ledger">
             <div className="section-card__head">
               <h3>Fee breakdown</h3>
