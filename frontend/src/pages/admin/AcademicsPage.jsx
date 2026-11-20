@@ -16,18 +16,22 @@ export default function AcademicsPage() {
   const [newYear, setNewYear] = useState({ name: '', startDate: '', endDate: '' });
   const [newSection, setNewSection] = useState({ classId: '', name: '' });
   const [editingSubjectsFor, setEditingSubjectsFor] = useState(null);
+  const [editingStreamId, setEditingStreamId] = useState(null);
+  const [streams, setStreams] = useState([]);
   const [selectedSubjects, setSelectedSubjects] = useState([]);
 
   const load = useCallback(async () => {
     try {
-      const [classList, subjectList, yearList] = await Promise.all([
+      const [classList, subjectList, yearList, options] = await Promise.all([
         admin.getClasses(),
         admin.getSubjects(),
         admin.getYears(),
+        admin.getOptions().catch(() => null),
       ]);
       setClasses(classList);
       setSubjects(subjectList);
       setYears(yearList);
+      setStreams(options?.streams || []);
     } catch (error) {
       setNotice({ kind: 'error', text: error.response?.data?.error?.message || 'Could not load academics.' });
     }
@@ -52,11 +56,12 @@ export default function AcademicsPage() {
     [classes],
   );
 
-  async function openSubjects(classId) {
+  async function openSubjects(classId, streamId = null) {
     try {
-      const current = await admin.getClassSubjects(classId);
+      const current = await admin.getClassSubjects(classId, streamId);
       setSelectedSubjects(current.map((subject) => subject.id));
       setEditingSubjectsFor(classId);
+      setEditingStreamId(streamId);
       // The picker lives in the right-hand column; on a narrow screen bring it into view.
       requestAnimationFrame(() => {
         document.querySelector('.academics-side')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -68,15 +73,25 @@ export default function AcademicsPage() {
 
   async function saveClassSubjects() {
     try {
-      const saved = await admin.setClassSubjects(editingSubjectsFor, selectedSubjects);
-      setNotice({ kind: 'success', text: `Saved ${saved.length} subject(s) for this class.` });
-      setEditingSubjectsFor(null);
+      const saved = await admin.setClassSubjects(editingSubjectsFor, selectedSubjects, editingStreamId);
+      const label = editingClass?.needs_stream
+        ? `${editingClass.name} · ${streams.find((s) => s.id === editingStreamId)?.name || 'stream'}`
+        : editingClass?.name || 'This class';
+      setNotice({ kind: 'success', text: `Saved ${saved.length} subject(s) for ${label}.` });
+      // Refresh the table so the per-stream counts change on screen.
+      await load();
+      // Senior classes keep the panel open: the next stream is one click away.
+      if (!editingClass?.needs_stream) {
+        setEditingSubjectsFor(null);
+        setEditingStreamId(null);
+      }
     } catch (error) {
       fail(error);
     }
   }
 
   const editingClass = classes.find((klass) => klass.id === editingSubjectsFor);
+  const sectionClass = classes.find((klass) => String(klass.id) === String(newSection.classId));
 
   return (
     <div className="page academics-page">
@@ -133,7 +148,22 @@ export default function AcademicsPage() {
                           <td className="align-right num" data-label="Level">{klass.level_order}</td>
                           <td className="align-right num" data-label="Sections">{klass.sections.length}</td>
                           <td className="align-right num" data-label="Students">{klass.student_count}</td>
-                          <td className="align-right num" data-label="Subjects">{klass.subject_count}</td>
+                          <td className="align-right num" data-label="Subjects">
+                            {klass.needs_stream ? (
+                              <span className="stream-counts">
+                                {(klass.subjects_by_stream || []).length === 0
+                                  ? <span className="muted">none yet</span>
+                                  : klass.subjects_by_stream.map((row) => (
+                                      <span key={row.stream_id ?? 'none'} className="stream-count">
+                                        {row.stream || 'General'}
+                                        <strong>{row.subjects}</strong>
+                                      </span>
+                                    ))}
+                              </span>
+                            ) : (
+                              klass.subject_count
+                            )}
+                          </td>
                           <td className="align-right" data-label="Actions">
                             <span className="row-actions">
                               <button type="button" className="link-button"
@@ -143,7 +173,8 @@ export default function AcademicsPage() {
                                 }}>
                                 Open sections
                               </button>
-                              <button type="button" className="btn-ghost btn--sm" onClick={() => openSubjects(klass.id)}>
+                              <button type="button" className="btn-ghost btn--sm"
+                                onClick={() => openSubjects(klass.id, null)}>
                                 Edit subjects
                               </button>
                             </span>
@@ -163,7 +194,24 @@ export default function AcademicsPage() {
                     <h3>{editingClass?.name || 'Class'} subjects</h3>
                     <span className="muted">{selectedSubjects.length} selected</span>
                   </div>
-                  {subjects.length === 0 ? (
+                  {editingClass?.needs_stream && (
+                    <div className="stream-tabs" role="tablist" aria-label="Class stream">
+                      {streams.map((stream) => (
+                        <button key={stream.id} type="button" role="tab"
+                          aria-selected={editingStreamId === stream.id}
+                          className={`tab ${editingStreamId === stream.id ? 'is-active' : ''}`}
+                          onClick={() => openSubjects(editingClass.id, stream.id)}>
+                          {stream.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {editingClass?.needs_stream && !editingStreamId ? (
+                    <p className="muted stream-hint">
+                      Pick a stream above — Class 11 and Class 12 keep their own subject list per
+                      stream. Classes below 11 do not use streams at all.
+                    </p>
+                  ) : subjects.length === 0 ? (
                     <div className="empty-state">
                       <span className="empty-state__icon"><i className="bi bi-journal" aria-hidden="true" /></span>
                       <strong>No subjects defined</strong>
@@ -192,10 +240,13 @@ export default function AcademicsPage() {
                     </div>
                   )}
                   <div className="form-actions">
-                    <button type="button" className="btn-ghost" onClick={() => setEditingSubjectsFor(null)}>
+                    <button type="button" className="btn-ghost"
+                      onClick={() => { setEditingSubjectsFor(null); setEditingStreamId(null); }}>
                       Cancel
                     </button>
-                    <button type="button" className="btn-primary" onClick={saveClassSubjects}>
+                    <button type="button" className="btn-primary"
+                      disabled={Boolean(editingClass?.needs_stream && !editingStreamId)}
+                      onClick={saveClassSubjects}>
                       Save subjects
                     </button>
                   </div>
@@ -264,6 +315,7 @@ export default function AcademicsPage() {
                   <thead>
                     <tr>
                       <th>Class</th>
+                      <th>Stream</th>
                       <th>Section</th>
                       <th className="align-right">Students</th>
                       <th>Class teacher</th>
@@ -273,6 +325,9 @@ export default function AcademicsPage() {
                     {sectionRows.map((section) => (
                       <tr key={section.id}>
                         <td data-label="Class">{section.className}</td>
+                        <td data-label="Stream">
+                          {section.stream || <span className="muted">—</span>}
+                        </td>
                         <td data-label="Section"><strong>Section {section.name}</strong></td>
                         <td className="align-right num" data-label="Students">
                           {section.students}/{section.capacity}
@@ -295,17 +350,28 @@ export default function AcademicsPage() {
             </div>
             <div className="stack">
               <Select label="Class" name="sectionClass" value={newSection.classId} placeholder="Select class"
-                onChange={(event) => setNewSection((c) => ({ ...c, classId: event.target.value }))}
+                onChange={(event) => setNewSection((c) => ({ ...c, classId: event.target.value, streamId: '' }))}
                 options={classes.map((klass) => ({ value: klass.id, label: klass.name }))} />
+              {sectionClass?.needs_stream && (
+                <Select label="Stream" name="sectionStream" value={newSection.streamId || ''}
+                  placeholder="Select stream"
+                  hint="Class 11 and Class 12 run one section per stream."
+                  onChange={(event) => setNewSection((c) => ({ ...c, streamId: event.target.value }))}
+                  options={streams.map((stream) => ({ value: stream.id, label: stream.name }))} />
+              )}
               <Field label="Section name" name="sectionName" value={newSection.name} placeholder="D"
                 hint="A letter or short code, e.g. A, B, D."
                 onChange={(event) => setNewSection((c) => ({ ...c, name: event.target.value }))} />
               <button type="button" className="btn-primary btn--block"
-                disabled={!newSection.classId || !newSection.name}
+                disabled={!newSection.classId || !newSection.name
+                  || Boolean(sectionClass?.needs_stream && !newSection.streamId)}
                 onClick={async () => {
                   try {
-                    await admin.createSection(newSection.classId, { name: newSection.name });
-                    setNewSection({ classId: newSection.classId, name: '' });
+                    await admin.createSection(newSection.classId, {
+                      name: newSection.name,
+                      ...(newSection.streamId ? { streamId: Number(newSection.streamId) } : {}),
+                    });
+                    setNewSection({ classId: newSection.classId, name: '', streamId: '' });
                     setNotice({ kind: 'success', text: 'Section added.' });
                     load();
                   } catch (error) {

@@ -841,3 +841,58 @@
   text-transform: uppercase;
   color: var(--ink-400);
 }
+
+/* --- Streams (Class 11 / 12): tabs inside the subject panel, per-stream counts in the table --- */
+.academics-side .stream-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.academics-side .stream-tabs .tab {
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-600);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.academics-side .stream-tabs .tab.is-active {
+  border-color: var(--brand);
+  background: var(--brand-50, #eef0fa);
+  color: var(--brand-700, #3f4c86);
+}
+
+.academics-page .stream-hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.academics-page .stream-counts {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.academics-page .stream-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--ink-600);
+  white-space: nowrap;
+}
+
+.academics-page .stream-count strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-900);
+}

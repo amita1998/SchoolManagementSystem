@@ -170,13 +170,19 @@ export async function deleteSubject(id) {
   return data.data;
 }
 
-export async function getClassSubjects(id) {
-  const { data } = await api.get(`/academics/classes/${id}/subjects`);
+/** Class 11/12 read their list per stream; every other class passes nothing. */
+export async function getClassSubjects(id, streamId = null) {
+  const { data } = await api.get(`/academics/classes/${id}/subjects`, {
+    params: streamId ? { streamId } : {},
+  });
   return data.data.subjects;
 }
 
-export async function setClassSubjects(id, subjectIds) {
-  const { data } = await api.put(`/academics/classes/${id}/subjects`, { subjectIds });
+export async function setClassSubjects(id, subjectIds, streamId = null) {
+  const { data } = await api.put(`/academics/classes/${id}/subjects`, {
+    subjectIds,
+    ...(streamId ? { streamId } : {}),
+  });
   return data.data.subjects;
 }
 
