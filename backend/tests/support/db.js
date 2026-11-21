@@ -7,6 +7,8 @@ import { pool } from '../../src/config/db.js';
  */
 const TRUNCATE = [
   'audit_logs',
+  'ptm_bookings',
+  'ptm_slots',
   'leave_requests',
   'library_issues',
   'library_books',

@@ -13,6 +13,7 @@ import adminRoutes from './admin.routes.js';
 import libraryRoutes from './library.routes.js';
 import leaveRoutes from './leave.routes.js';
 import idCardRoutes from './idCards.routes.js';
+import ptmRoutes from './ptm.routes.js';
 
 const router = Router();
 
@@ -30,5 +31,6 @@ router.use('/admin', adminRoutes);
 router.use('/library', libraryRoutes);
 router.use('/leave', leaveRoutes);
 router.use('/id-cards', idCardRoutes);
+router.use('/ptm', ptmRoutes);
 
 export default router;

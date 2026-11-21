@@ -25,7 +25,7 @@ const NAV_GROUPS = {
     },
     {
       label: 'Administration',
-      paths: ['/admin/fees', '/admin/library', '/admin/leave', '/admin/events', '/admin/announcements', '/admin/settings', '/admin/audit'],
+      paths: ['/admin/fees', '/admin/library', '/admin/leave', '/admin/ptm', '/admin/events', '/admin/announcements', '/admin/settings', '/admin/audit'],
     },
   ],
   teacher: [
@@ -41,6 +41,7 @@ const NAV_GROUPS = {
         '/teacher/timetable',
         '/teacher/library',
         '/teacher/leave',
+        '/teacher/ptm',
       ],
     },
     { label: 'School', paths: ['/teacher/events', '/teacher/notices'] },
@@ -51,7 +52,7 @@ const NAV_GROUPS = {
       label: 'Academics',
       paths: ['/student/attendance', '/student/results', '/student/assignments', '/student/timetable'],
     },
-    { label: 'School', paths: ['/student/fees', '/student/events', '/student/notices'] },
+    { label: 'School', paths: ['/student/fees', '/student/ptm', '/student/events', '/student/notices'] },
   ],
   parent: [
     { label: 'Overview', paths: ['/parent'] },
@@ -64,6 +65,7 @@ const NAV_GROUPS = {
         '/parent/fees',
         '/parent/assignments',
         '/parent/timetable',
+        '/parent/ptm',
       ],
     },
     { label: 'School', paths: ['/parent/events', '/parent/notices'] },

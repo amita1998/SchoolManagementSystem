@@ -42,6 +42,12 @@ export const PERMISSIONS = {
   LEAVE_APPROVE: 'leave.approve',
   LEAVE_MANAGE: 'leave.manage',
 
+  // parent–teacher meetings
+  PTM_VIEW: 'ptm.view',
+  PTM_VIEW_OWN: 'ptm.view.own',
+  PTM_BOOK: 'ptm.book',
+  PTM_MANAGE: 'ptm.manage',
+
   // library
   LIBRARY_VIEW: 'library.view',
   LIBRARY_MANAGE: 'library.manage',
@@ -101,6 +107,8 @@ export const ROLE_PERMISSIONS = {
     P.LEAVE_VIEW_ALL,
     P.LEAVE_APPLY,
     P.LEAVE_APPROVE,
+    P.PTM_VIEW_OWN,
+    P.PTM_MANAGE,
     P.ATTENDANCE_MARK,
     P.ATTENDANCE_VIEW_ASSIGNED,
     P.ATTENDANCE_CORRECTION_REQUEST,
@@ -125,6 +133,7 @@ export const ROLE_PERMISSIONS = {
     P.ATTENDANCE_VIEW_OWN,
     P.EXAM_VIEW,
     P.RESULT_VIEW_OWN,
+    P.PTM_VIEW_OWN,
     P.FEE_VIEW_OWN,
     P.EVENT_VIEW,
     P.ANNOUNCEMENT_VIEW,
@@ -147,11 +156,17 @@ export const ROLE_PERMISSIONS = {
     P.ANNOUNCEMENT_VIEW,
     P.ASSIGNMENT_VIEW,
     P.TIMETABLE_VIEW,
+    P.PTM_VIEW_OWN,
+    P.PTM_BOOK,
   ],
 };
 
 /** Human labels for the read-only permission screen in Settings. */
 export const PERMISSION_LABELS = {
+  [P.PTM_VIEW]: 'See every parent–teacher meeting slot',
+  [P.PTM_VIEW_OWN]: 'See own meeting slots and bookings',
+  [P.PTM_BOOK]: 'Book a parent–teacher meeting for a child',
+  [P.PTM_MANAGE]: 'Publish and manage parent–teacher meeting slots',
   [P.STUDENT_VIEW_ALL]: 'View all student records',
   [P.STUDENT_VIEW_ASSIGNED]: 'View students of assigned classes',
   [P.STUDENT_VIEW_OWN]: 'View own student record',
