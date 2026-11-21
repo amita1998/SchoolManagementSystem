@@ -563,7 +563,7 @@ function CollectTab({ onNotice, refreshToken = 0 }) {
   const [results, setResults] = useState([]);
   const [student, setStudent] = useState(null);
   const [data, setData] = useState(null);
-  const [form, setForm] = useState({ studentFeeId: '', amount: '', paymentMode: 'cash', referenceNo: '', paidOn: today(), remarks: '' });
+  const [form, setForm] = useState({ studentFeeId: '', amount: '', paymentMode: 'cash', referenceNo: '', paidOn: today(), remarks: '', idempotencyKey: '' });
   const [busy, setBusy] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
 
@@ -615,11 +615,20 @@ function CollectTab({ onNotice, refreshToken = 0 }) {
 
   async function submit(event) {
     event.preventDefault();
+    if (busy) return;
     setBusy(true);
     try {
-      const result = await feesApi.recordPayment({ ...form, studentFeeId: Number(form.studentFeeId) });
+      // A double-click or a network retry must not create a second payment + receipt: the key is
+      // minted once per form and reused until the form is reset.
+      const idempotencyKey = form.idempotencyKey || (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+      if (!form.idempotencyKey) setForm((current) => ({ ...current, idempotencyKey }));
+      const result = await feesApi.recordPayment({
+        ...form,
+        idempotencyKey,
+        studentFeeId: Number(form.studentFeeId),
+      });
       onNotice({ kind: 'success', text: `Receipt ${result.receipt.receipt_no} issued for ${money(result.receipt.amount)}.` });
-      setForm({ studentFeeId: '', amount: '', paymentMode: 'cash', referenceNo: '', paidOn: today(), remarks: '' });
+      setForm({ studentFeeId: '', amount: '', paymentMode: 'cash', referenceNo: '', paidOn: today(), remarks: '', idempotencyKey: '' });
       setPayOpen(false);
       load(student.id);
     } catch (error) {
