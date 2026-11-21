@@ -42,6 +42,14 @@ export const PERMISSIONS = {
   LEAVE_APPROVE: 'leave.approve',
   LEAVE_MANAGE: 'leave.manage',
 
+  // parent–teacher chat board
+  CHAT_VIEW: 'chat.view',
+  CHAT_SEND: 'chat.send',
+
+  // chapter-wise syllabus + exam portion
+  SYLLABUS_VIEW: 'syllabus.view',
+  SYLLABUS_MANAGE: 'syllabus.manage',
+
   // parent–teacher meetings
   PTM_VIEW: 'ptm.view',
   PTM_VIEW_OWN: 'ptm.view.own',
@@ -109,6 +117,10 @@ export const ROLE_PERMISSIONS = {
     P.LEAVE_APPROVE,
     P.PTM_VIEW_OWN,
     P.PTM_MANAGE,
+    P.CHAT_VIEW,
+    P.CHAT_SEND,
+    P.SYLLABUS_VIEW,
+    P.SYLLABUS_MANAGE,
     P.ATTENDANCE_MARK,
     P.ATTENDANCE_VIEW_ASSIGNED,
     P.ATTENDANCE_CORRECTION_REQUEST,
@@ -134,6 +146,7 @@ export const ROLE_PERMISSIONS = {
     P.EXAM_VIEW,
     P.RESULT_VIEW_OWN,
     P.PTM_VIEW_OWN,
+    P.SYLLABUS_VIEW,
     P.FEE_VIEW_OWN,
     P.EVENT_VIEW,
     P.ANNOUNCEMENT_VIEW,
@@ -158,11 +171,18 @@ export const ROLE_PERMISSIONS = {
     P.TIMETABLE_VIEW,
     P.PTM_VIEW_OWN,
     P.PTM_BOOK,
+    P.CHAT_VIEW,
+    P.CHAT_SEND,
+    P.SYLLABUS_VIEW,
   ],
 };
 
 /** Human labels for the read-only permission screen in Settings. */
 export const PERMISSION_LABELS = {
+  [P.CHAT_VIEW]: 'Read parent–teacher conversations',
+  [P.CHAT_SEND]: 'Write in parent–teacher conversations',
+  [P.SYLLABUS_VIEW]: 'See the chapter-wise syllabus and exam portion',
+  [P.SYLLABUS_MANAGE]: 'Add chapters and set the portion of an exam',
   [P.PTM_VIEW]: 'See every parent–teacher meeting slot',
   [P.PTM_VIEW_OWN]: 'See own meeting slots and bookings',
   [P.PTM_BOOK]: 'Book a parent–teacher meeting for a child',

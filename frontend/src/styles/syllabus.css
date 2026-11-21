@@ -1,0 +1,91 @@
+/* Chapter-wise syllabus + exam portion. Namespaced `syllabus-` so nothing here can collide with the
+   page stylesheets that load before it. */
+
+.syllabus-progress {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.syllabus-bar {
+  flex: 1 1 200px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--line);
+  overflow: hidden;
+}
+
+.syllabus-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--brand-500);
+  transition: width 0.25s ease;
+}
+
+.syllabus-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.syllabus-side {
+  display: grid;
+  gap: 14px;
+}
+
+.syllabus-checklist {
+  display: grid;
+  gap: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 8px 10px;
+  margin: 8px 0;
+  background: var(--surface-sunken);
+}
+
+.syllabus-checklist__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--ink-800);
+  cursor: pointer;
+}
+
+.syllabus-portion-card {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: var(--surface-sunken);
+}
+
+.syllabus-portion-card header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+.syllabus-portion-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 13.5px;
+  color: var(--ink-700);
+}
+
+.syllabus-portion-list .status-badge {
+  margin-left: 6px;
+}
+
+@media (max-width: 980px) {
+  .syllabus-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

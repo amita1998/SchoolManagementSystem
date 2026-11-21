@@ -14,6 +14,8 @@ import libraryRoutes from './library.routes.js';
 import leaveRoutes from './leave.routes.js';
 import idCardRoutes from './idCards.routes.js';
 import ptmRoutes from './ptm.routes.js';
+import chatRoutes from './chat.routes.js';
+import syllabusRoutes from './syllabus.routes.js';
 
 const router = Router();
 
@@ -32,5 +34,7 @@ router.use('/library', libraryRoutes);
 router.use('/leave', leaveRoutes);
 router.use('/id-cards', idCardRoutes);
 router.use('/ptm', ptmRoutes);
+router.use('/chat', chatRoutes);
+router.use('/syllabus', syllabusRoutes);
 
 export default router;

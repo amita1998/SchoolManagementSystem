@@ -1,0 +1,188 @@
+/* Parent–teacher chat board. Every class here is namespaced `chat-` so it cannot collide with the
+   page stylesheets that load before this one (see the `.timeline` / `.history-list` lesson). */
+
+.chat-page .chat-new {
+  margin-bottom: 14px;
+}
+
+.chat-new__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.chat-new__form .form-field {
+  min-width: 220px;
+  flex: 1 1 220px;
+  margin: 0;
+}
+
+.chat-layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.chat-inbox,
+.chat-thread {
+  min-height: 420px;
+}
+
+.chat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.chat-list__item {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+  color: var(--ink-800);
+  font: inherit;
+}
+
+.chat-list__item:hover {
+  background: var(--brand-50);
+}
+
+.chat-list__item.is-active {
+  background: var(--brand-50);
+  box-shadow: inset 3px 0 0 var(--brand-500);
+}
+
+.chat-list__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chat-list__meta,
+.chat-list__time {
+  font-size: 12px;
+  color: var(--ink-400);
+}
+
+.chat-list__preview {
+  font-size: 13px;
+  color: var(--ink-500);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.chat-bubbles {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 2px 12px;
+  max-height: 52vh;
+  overflow-y: auto;
+}
+
+.chat-bubbles__empty {
+  margin: 18px 4px;
+  color: var(--ink-400);
+  font-size: 14px;
+}
+
+.chat-bubble {
+  max-width: min(560px, 82%);
+  padding: 9px 12px;
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+}
+
+.chat-bubble--mine {
+  align-self: flex-end;
+  background: var(--brand-50);
+  border-color: var(--brand-100);
+}
+
+.chat-bubble header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--ink-400);
+}
+
+.chat-bubble header strong {
+  color: var(--ink-700);
+  font-size: 12.5px;
+}
+
+.chat-bubble p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-800);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chat-composer {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.chat-composer textarea {
+  flex: 1;
+  resize: vertical;
+  min-height: 46px;
+  max-height: 140px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink-800);
+  background: var(--surface);
+}
+
+.chat-composer textarea:focus {
+  outline: 2px solid var(--brand-200);
+  border-color: var(--brand-500);
+}
+
+@media (max-width: 900px) {
+  .chat-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chat-list {
+    max-height: 40vh;
+  }
+}

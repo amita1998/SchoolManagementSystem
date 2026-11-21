@@ -21,13 +21,15 @@ const MODES = [
   { value: 'phone', label: 'Phone call' },
 ];
 
+// `.status-badge` + its tone modifiers are the only badge rules in ui.css (`.badge` has none, so a
+// pill written that way renders as plain text).
 const STATUS_TONE = {
-  open: 'badge--ok',
-  closed: 'badge--muted',
-  cancelled: 'badge--danger',
-  booked: 'badge--warn',
-  attended: 'badge--ok',
-  no_show: 'badge--danger',
+  open: 'status-badge status-badge--mint',
+  closed: 'status-badge status-badge--blue',
+  cancelled: 'status-badge status-badge--coral',
+  booked: 'status-badge status-badge--amber',
+  attended: 'status-badge status-badge--mint',
+  no_show: 'status-badge status-badge--coral',
 };
 
 function today() {
@@ -272,7 +274,7 @@ export default function PtmPanel({ mode = 'admin' }) {
                     <td data-label="How">{MODES.find((m) => m.value === slot.mode)?.label || slot.mode}</td>
                     <td data-label="Booked">{slot.booked}/{slot.capacity}</td>
                     <td data-label="Status">
-                      <span className={`badge ${STATUS_TONE[slot.status] || 'badge--muted'}`}>{slot.status}</span>
+                      <span className={STATUS_TONE[slot.status] || 'status-badge status-badge--blue'}>{slot.status}</span>
                     </td>
                     <td className="align-right" data-label="Action">
                       {canBook ? (
@@ -331,7 +333,7 @@ export default function PtmPanel({ mode = 'admin' }) {
                     <td data-label="Teacher">{booking.teacher_name}</td>
                     <td data-label="When">{booking.date_label} · {booking.start_label}</td>
                     <td data-label="Status">
-                      <span className={`badge ${STATUS_TONE[booking.status] || 'badge--muted'}`}>{booking.status}</span>
+                      <span className={STATUS_TONE[booking.status] || 'status-badge status-badge--blue'}>{booking.status}</span>
                       {booking.note ? <div className="muted">{booking.note}</div> : null}
                     </td>
                     <td className="align-right" data-label="Action">

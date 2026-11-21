@@ -31,6 +31,12 @@ import TeacherLibraryPage from '../pages/teacher/TeacherLibraryPage.jsx';
 import ParentLibraryPage from '../pages/parent/ParentLibraryPage.jsx';
 import AdminLeavePage from '../pages/admin/AdminLeavePage.jsx';
 import AdminPtmPage from '../pages/ptm/AdminPtmPage.jsx';
+import AdminSyllabusPage from '../pages/syllabus/AdminSyllabusPage.jsx';
+import TeacherSyllabusPage from '../pages/syllabus/TeacherSyllabusPage.jsx';
+import StudentSyllabusPage from '../pages/syllabus/StudentSyllabusPage.jsx';
+import ParentSyllabusPage from '../pages/syllabus/ParentSyllabusPage.jsx';
+import TeacherChatPage from '../pages/chat/TeacherChatPage.jsx';
+import ParentChatPage from '../pages/chat/ParentChatPage.jsx';
 import TeacherPtmPage from '../pages/ptm/TeacherPtmPage.jsx';
 import ParentPtmPage from '../pages/ptm/ParentPtmPage.jsx';
 import StudentPtmPage from '../pages/ptm/StudentPtmPage.jsx';
@@ -65,6 +71,8 @@ import '../styles/attendance.css';
 import '../styles/exams.css';
 import '../styles/fees.css';
 import '../styles/comms.css';
+import '../styles/chat.css';
+import '../styles/syllabus.css';
 // The shared component layer loads last on purpose: it owns the bare selectors
 // (cards, tables, forms, buttons, badges) and must win over the legacy page CSS.
 import '../styles/ui.css';
@@ -124,6 +132,7 @@ export default function AppRoutes() {
         <Route path="library" element={<LibraryPage />} />
         <Route path="leave" element={<AdminLeavePage />} />
         <Route path="ptm" element={<AdminPtmPage />} />
+        <Route path="syllabus" element={<AdminSyllabusPage />} />
         <Route path="events" element={<AdminEventsPage />} />
         <Route path="announcements" element={<AdminNoticesPage />} />
         <Route path="timetable" element={<AdminTimetablePage />} />
@@ -149,6 +158,8 @@ export default function AppRoutes() {
         <Route path="library" element={<TeacherLibraryPage />} />
         <Route path="leave" element={<TeacherLeavePage />} />
         <Route path="ptm" element={<TeacherPtmPage />} />
+        <Route path="chat" element={<TeacherChatPage />} />
+        <Route path="syllabus" element={<TeacherSyllabusPage />} />
         <Route path="assignments" element={<TeacherAssignmentsPage />} />
         <Route path="timetable" element={<TeacherTimetablePage />} />
         <Route path="events" element={<TeacherEventsPage />} />
@@ -175,6 +186,7 @@ export default function AppRoutes() {
         <Route path="library" element={<StudentLibraryPage />} />
         <Route path="leave" element={<StudentLeavePage />} />
         <Route path="ptm" element={<StudentPtmPage />} />
+        <Route path="syllabus" element={<StudentSyllabusPage />} />
         <Route path="*" element={<ComingSoon />} />
       </Route>
 
@@ -194,6 +206,8 @@ export default function AppRoutes() {
         <Route path="library" element={<ParentLibraryPage />} />
         <Route path="leave" element={<ParentLeavePage />} />
         <Route path="ptm" element={<ParentPtmPage />} />
+        <Route path="chat" element={<ParentChatPage />} />
+        <Route path="syllabus" element={<ParentSyllabusPage />} />
         <Route path="assignments" element={<ParentAssignmentsPage />} />
         <Route path="timetable" element={<ParentTimetablePage />} />
         <Route path="events" element={<ParentEventsPage />} />
