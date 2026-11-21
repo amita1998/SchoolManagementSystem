@@ -1,7 +1,26 @@
 import axios from 'axios';
 import session from './session.js';
 
-const baseURL = import.meta.env.VITE_API_URL || '/api';
+/**
+ * Backend base URL. Three spellings are accepted so a hand-edited `.env` cannot silently break
+ * every request: VITE_API_URL (canonical), VITE_API_BASE_URL (older name), and the `/api` default
+ * that goes through the Vite proxy in development.
+ *
+ * The value may be given with or without the trailing `/api` — this app calls paths like
+ * `/auth/login`, so a bare host would 404 everywhere. It is normalised here, once.
+ */
+function resolveBaseUrl() {
+  const raw =
+    import.meta.env.VITE_API_URL ||
+    import.meta.env.VITE_API_BASE_URL ||
+    '/api';
+  const trimmed = String(raw).trim().replace(/\/+$/, '');
+  if (!trimmed) return '/api';
+  if (trimmed.startsWith('/')) return trimmed;
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+}
+
+const baseURL = resolveBaseUrl();
 
 /** Shown by the login screen when the browser gets no response at all. */
 export const API_BASE_URL = baseURL;
