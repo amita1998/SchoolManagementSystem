@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import * as leave from '../../services/leave.js';
 
+/** 0.5 → "Half day", 3 hours → "3 hours", otherwise the plain day count. */
+function durationLabel(row) {
+  if (row.duration_type === 'half_day') return 'Half day';
+  if (row.duration_type === 'hourly') return `${row.hours} hour${Number(row.hours) === 1 ? '' : 's'}`;
+  return null;
+}
+
 const STATUS_TONE = {
   pending: 'badge--warn',
   approved: 'badge--ok',
@@ -59,7 +66,7 @@ export default function LeaveBoard({ rows, canDecide = false, onChanged, loading
             <th>Type</th>
             <th>From</th>
             <th>To</th>
-            <th className="align-right">Days</th>
+            <th className="align-right">Duration</th>
             <th>Status</th>
             <th className="col-actions align-right">Action</th>
           </tr>
@@ -80,7 +87,10 @@ export default function LeaveBoard({ rows, canDecide = false, onChanged, loading
               </td>
               <td data-label="From">{row.from_label}</td>
               <td data-label="To">{row.to_label}</td>
-              <td className="align-right num" data-label="Days">{row.days}</td>
+              <td className="align-right" data-label="Days">
+                <span className="num">{Number(row.days)}</span>
+                {durationLabel(row) ? <div className="muted">{durationLabel(row)}</div> : null}
+              </td>
               <td data-label="Status">
                 <span className={`badge ${STATUS_TONE[row.status] || 'badge--muted'}`}>{row.status}</span>
                 {row.decision_note ? <div className="muted leave-reason">{row.decision_note}</div> : null}
